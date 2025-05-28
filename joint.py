@@ -19,6 +19,17 @@ def calculate_angle(a,b,c):
 
     return angle
 
+def renderAngle(p1, p2, p3):
+
+    #Calculate angle 
+    angle = calculate_angle(p1, p2, p3)
+
+    # Visualize angle 
+    cv2.putText(image, str(angle),
+                tuple(np.multiply(p2, [640, 480]).astype(int)),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
+                            )
+                
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     ## Setup mediapipe instance 
@@ -45,27 +56,17 @@ if __name__ == "__main__":
                 elbowL =  [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
                 wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
 
-                #Calculate angle 
-                angle = calculate_angle(shoulderL, elbowL, wristL)
-
-                # Visualize angle 
-                cv2.putText(image, str(angle),
-                            tuple(np.multiply(elbowL, [640, 480]).astype(int)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                            )
+                renderAngle(shoulderL, elbowL, wristL)
                 
                 shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
                 elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
                 wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
 
-                #Calculate angle 
-                angle = calculate_angle(shoulderR, elbowR, wristR)
+                renderAngle(shoulderR, elbowR, wristR)
 
-                # Visualize angle 
-                cv2.putText(image, str(angle),
-                            tuple(np.multiply(elbowR, [640, 480]).astype(int)),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                            )
+                shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+                elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+                wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
             except:
                 pass
 
