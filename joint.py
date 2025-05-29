@@ -18,30 +18,77 @@ def calculate_angle(a,b,c):
 
     return angle
 
-def renderAngle(p1, p2, p3):
-    #Calculate angle 
-    angle = calculate_angle(p1, p2, p3)
+def renderAngle( p2, angle):
+    
 
     # Visualize angle 
-    cv2.putText(image, str(angle),
+    cv2.putText(image, str(int(angle)),
                 tuple(np.multiply(p2, [640, 480]).astype(int)),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                             )
 
-def checkHandstand(leg_angle, arm_angle, hip_angle, stack_angle):
+def checkHandstand(landmarks):
+    arm_correction = "Good"
+    leg_correction = "Good"
+    stack_correction = "Good"
 
-    if  leg_angle < 170.0  or arm_angle < 170 :
-        # limbs not straight
-        print("")
+    # Get coordinates arms
+    shoulderL = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+    elbowL =  [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
+    wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+
+    left_arm_angle = calculate_angle(shoulderL, elbowL, wristL)
+    renderAngle(elbowL, left_arm_angle)
     
-    if hip_angle >100:
-        #feet not together 
-        print("")
+    shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+    elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+    wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
 
-    if stack_angle < 170:
-        # Hand/shoulder->hip-> feet are not stacked 
-        print("")
-    return False
+    right_arm_angle = calculate_angle(shoulderR, elbowR, wristR)
+    renderAngle( elbowR, right_arm_angle)
+
+    # Get coordinates legs
+    hipL = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
+    kneeL =  [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+    ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+
+    left_leg_angle = calculate_angle(hipL, kneeL, ankleL)
+    renderAngle( kneeL, left_leg_angle)
+    
+    hipR = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+    kneeR =  [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+    ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+    right_leg_angle = calculate_angle(hipR, kneeR, ankleR)
+    renderAngle(kneeR, right_leg_angle)
+    
+    # Get coordinates for stack 
+    stack_angle_left = calculate_angle(wristL, shoulderL, hipL)
+    stack_angle_right = calculate_angle(wristR, shoulderR, hipR)
+    renderAngle(shoulderL, stack_angle_left)
+    renderAngle(shoulderR, stack_angle_right)
+
+    if  left_arm_angle < 170.0  or right_arm_angle < 170.0 :
+        arm_correction = "Arms too bent"
+    else:
+        arm_correction = "Arms Good"
+
+    if left_leg_angle < 170.0 or right_leg_angle < 170.0:
+        leg_correction = "Straighten legs"
+    else:
+        leg_correction = "Legs Good"
+
+    if stack_angle_left < 170 or stack_angle_right < 170:
+        # Wrist shoulder and hips are not stacked 
+        stack_correction = "Not stacked"
+    else:
+        stack_correction = "Good Stack"
+
+    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, stack_correction, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+
+    return 
 
 
 if __name__ == "__main__":
@@ -65,32 +112,8 @@ if __name__ == "__main__":
             try: 
                 landmarks = results.pose_landmarks.landmark
 
-                
-                # Get coordinates arms
-                shoulderL = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-                elbowL =  [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-                wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+                checkHandstand(landmarks)
 
-                renderAngle(shoulderL, elbowL, wristL)
-                
-                shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-                elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-                wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
-
-                renderAngle(shoulderR, elbowR, wristR)
-
-                # Get coordinates legs
-                hipL = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-                kneeL =  [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
-                ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
-
-                renderAngle(hipL, kneeL, ankleL)
-                
-                hipR = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
-                kneeR =  [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
-                ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
-
-                renderAngle(hipR, kneeR, ankleR)
             except:
                 pass
 
