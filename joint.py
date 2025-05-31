@@ -13,6 +13,17 @@ class skills(Enum):
     BACKLEVER = 4
     NINTYHOLD = 5
 
+# Body positions
+class positions(Enum):
+    ARM_ANGLE_LEFT = 1
+    ARM_ANGLE_RIGHT = 2
+    LEG_ANGLE_LEFT = 3
+    LEG_ANGLE_RIGHT = 4
+    STACK_ANGLE_LEFT = 5
+    STACK_ANGLE_RIGHT = 6
+    FRONT_LEVER_HAND_POSITION_LEFT = 7
+    FRONT_LEVER_HAND_POSITION_RIGHT = 8
+
 
 
 # Calculations 
@@ -42,49 +53,64 @@ def renderAngle( point, angle):
                 )
 
 def getAngles(landmarks, skill):
-    # Get coordinates arms
+    angle_dict = {}
+
+    #Left arm straight
+    shoulderL = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+    elbowL =  [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
+    wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+
+    left_arm_angle = calculate_angle(shoulderL, elbowL, wristL)
+    renderAngle(elbowL, left_arm_angle)
+    angle_dict[positions.ARM_ANGLE_LEFT] = left_arm_angle
+    
+    # Right arm straight
+    shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+    elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+    wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+
+    right_arm_angle = calculate_angle(shoulderR, elbowR, wristR)
+    renderAngle( elbowR, right_arm_angle)
+    angle_dict[positions.ARM_ANGLE_RIGHT] = right_arm_angle
+
+    # Left Leg straight
+    hipL = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
+    kneeL =  [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+    ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
+
+    left_leg_angle = calculate_angle(hipL, kneeL, ankleL)
+    renderAngle( kneeL, left_leg_angle)
+    angle_dict[positions.LEG_ANGLE_LEFT] = left_leg_angle
+    
+    # Right leg straight
+    hipR = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+    kneeR =  [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
+    ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
+
+    right_leg_angle = calculate_angle(hipR, kneeR, ankleR)
+    renderAngle(kneeR, right_leg_angle)
+    angle_dict[positions.LEG_ANGLE_RIGHT] = right_leg_angle
+
     if skill == skills.HANDSTAND:
-        shoulderL = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-        elbowL =  [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-        wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
-
-        left_arm_angle = calculate_angle(shoulderL, elbowL, wristL)
-        renderAngle(elbowL, left_arm_angle)
-        
-        shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-        elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-        wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
-
-        right_arm_angle = calculate_angle(shoulderR, elbowR, wristR)
-        renderAngle( elbowR, right_arm_angle)
-
-        # Get coordinates legs
-        hipL = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-        kneeL =  [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
-        ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
-
-        left_leg_angle = calculate_angle(hipL, kneeL, ankleL)
-        renderAngle( kneeL, left_leg_angle)
-        
-        hipR = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
-        kneeR =  [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
-        ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
-
-        right_leg_angle = calculate_angle(hipR, kneeR, ankleR)
-        renderAngle(kneeR, right_leg_angle)
-        
-        # Get coordinates for stack 
+        # Stack 
         stack_angle_left = calculate_angle(wristL, shoulderL, hipL)
         stack_angle_right = calculate_angle(wristR, shoulderR, hipR)
         renderAngle(shoulderL, stack_angle_left)
         renderAngle(shoulderR, stack_angle_right)
+        angle_dict[positions.STACK_ANGLE_LEFT] = stack_angle_left
+        angle_dict[positions.STACK_ANGLE_RIGHT] = stack_angle_right
 
-    return {"LA" :left_arm_angle, 
-            "RA" :right_arm_angle, 
-            "LL": left_leg_angle, 
-            "RL": right_leg_angle, 
-            "SL": stack_angle_left, 
-            "SR": stack_angle_right}
+    elif skill == skills.FRONTLEVER:
+        # Hand position over hips
+        left_hand_position_front_lever = calculate_angle(wristL, hipL, shoulderL)
+        right_hand_position_front_lever = calculate_angle(wristR, hipR, shoulderR)
+        renderAngle(hipL, left_hand_position_front_lever)
+        renderAngle(hipR, right_hand_position_front_lever)
+        angle_dict[positions.FRONT_LEVER_HAND_POSITION_LEFT] = left_hand_position_front_lever
+        angle_dict[positions.FRONT_LEVER_HAND_POSITION_RIGHT] = right_hand_position_front_lever
+    
+
+    return angle_dict
 
 def evaluateHandstand(landmarks):
     arm_correction = "Good"
@@ -92,27 +118,32 @@ def evaluateHandstand(landmarks):
     stack_correction = "Good"
 
     angles = getAngles(landmarks, skills.HANDSTAND)
-
-    if  angles["LA"] < 170.0  or angles["RA"] < 170.0 :
+    
+    if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
     else:
         arm_correction = "Arms Good"
 
-    if angles["LL"] < 170.0 or angles["RL"] < 170.0:
+    if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
         leg_correction = "Straighten legs"
     else:
         leg_correction = "Legs Good"
 
-    if angles["SL"] < 170 or angles["SR"] < 170:
+    if angles[positions.STACK_ANGLE_LEFT] < 170 or angles[positions.STACK_ANGLE_RIGHT] < 170:
         # Wrist shoulder and hips are not stacked 
         stack_correction = "Not stacked"
     else:
         stack_correction = "Good Stack"
     
+    
     # Calulate score 
-    angle_sum =  angles["LA"] + angles["RA"] + angles["LL"] + angles["RL"] + angles["SL"] + angles["SR"]
-    score = calculateScoreHS(angle_sum, 6)
+    angle_sum = 0
+    for value in angles.values():
+        angle_sum += value
+
+    score = calculateScoreHS(angle_sum, len(angles))
     percentage = str(score) + "%"
+
 
     # Render tips and score 
     cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
@@ -126,41 +157,45 @@ def evaluateHandstand(landmarks):
 def evaluateFrontLever(landmarks):
     arm_correction = "Good"
     leg_correction = "Good"
-    stack_correction = "Good"
+    wrist_position = "Good"
 
     angles = getAngles(landmarks, skills.FRONTLEVER)
 
-    if  angles["LA"] < 170.0  or angles["RA"] < 170.0 :
+    if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
     else:
         arm_correction = "Arms Good"
 
-    if angles["LL"] < 170.0 or angles["RL"] < 170.0:
+    if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
         leg_correction = "Straighten legs"
     else:
         leg_correction = "Legs Good"
 
-    if angles["SL"] < 170 or angles["SR"] < 170:
+    if 80 < angles[positions.FRONT_LEVER_HAND_POSITION_LEFT] < 100 or 80 < angles[positions.FRONT_LEVER_HAND_POSITION_RIGHT] < 100:
         # Wrist shoulder and hips are not stacked 
-        stack_correction = "Not stacked"
+        wrist_position = "Hands not over hips"
     else:
-        stack_correction = "Good Stack"
+        wrist_position = "Good, hands over hips"
     
-    # Calulate score 
-    angle_sum =  angles["LA"] + angles["RA"] + angles["LL"] + angles["RL"] + angles["SL"] + angles["SR"]
-    score = calculateScoreHS(angle_sum, 6)
+    #calculate score
+    angle_sum = 0
+    for value in angles.values():
+        angle_sum += value
+
+    score = calculateScoreHS(angle_sum, len(angles))
     percentage = str(score) + "%"
 
     # Render tips and score 
     cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
     cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, stack_correction, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
     cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
     return 
 
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
+    skill = skills.HANDSTAND
     ## Setup mediapipe instance 
     with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose: # confidence for tracking too high means no tracking as it can't detect 
         while cap.isOpened(): 
@@ -179,8 +214,8 @@ if __name__ == "__main__":
 
             try: 
                 landmarks = results.pose_landmarks.landmark
-
-                evaluateHandstand(landmarks)
+                if skill == skills.HANDSTAND:
+                    evaluateHandstand(landmarks)
 
             except:
                 pass
