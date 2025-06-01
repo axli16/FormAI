@@ -8,6 +8,8 @@ mp_pose = mp.solutions.pose
 
 
 # Calculations 
+
+# Calculate the angle between 3 points on the mediapipe points 
 def calculate_angle(a,b,c):
     a = np.array(a)
     b = np.array(b)
@@ -21,11 +23,9 @@ def calculate_angle(a,b,c):
 
     return angle
 
-def calculateScoreHS(total_angle, num_angles):
-    score = (total_angle / (180 * num_angles)) * 100
-    return int(score)
 
-def calculateScoreFrontLever(total_angle):
+#Score the skills
+def calculateScore(total_angle):
     angle = 0
     angleP = 0
     for key, value in total_angle.items():
@@ -92,30 +92,32 @@ def getAngles(landmarks, skill):
         angle_dict[positions.STACK_ANGLE_LEFT] = stack_angle_left
         angle_dict[positions.STACK_ANGLE_RIGHT] = stack_angle_right
 
-    elif skill == skills.FRONTLEVER:
-        # Hand position over hips
+    elif skill == skills.FRONTLEVER or skill == skills.PLANCHE or skill == skills.NINTYHOLD:
+        # Hand position over hips around 90 degrees
         left_hand_position_front_lever = calculate_angle(wristL, hipL, shoulderL)
         right_hand_position_front_lever = calculate_angle(wristR, hipR, shoulderR)
         renderAngle(hipL, left_hand_position_front_lever)
         renderAngle(hipR, right_hand_position_front_lever)
-        angle_dict[positions.FRONT_LEVER_HAND_POSITION_LEFT] = left_hand_position_front_lever
-        angle_dict[positions.FRONT_LEVER_HAND_POSITION_RIGHT] = right_hand_position_front_lever
+        angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] = left_hand_position_front_lever
+        angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] = right_hand_position_front_lever
 
         #Flat body (Right now the only way I can think of to see if the body is paralled to ground as )
         left_shoulder_ankle = calculate_angle(shoulderL, hipL, ankleL)
         right_shoulder_ankle = calculate_angle(shoulderR, hipR, ankleR)
-        angle_dict[positions.FRONT_LEVER_SHOULDER_ANKLE_LEFT] = left_shoulder_ankle
-        angle_dict[positions.FRONT_LEVER_SHOULDER_ANKLE_RIGHT] = right_shoulder_ankle
+        angle_dict[positions.FLAT_BODY_LEFT] = left_shoulder_ankle
+        angle_dict[positions.FLAT_BODY_RIGHT] = right_shoulder_ankle
 
         # Angle of arm and body to make sure paralled to ground
         arm_torso_angle_left = calculate_angle(wristL, shoulderL, hipL)
         arm_torso_angle_right = calculate_angle(wristR, shoulderR, hipR)
-        angle_dict[positions.FRONT_LEVER_ARM_TORSO_LEFT] = arm_torso_angle_left
-        angle_dict[positions.FRONT_LEVER_ARM_TORSO_RIGHT] = arm_torso_angle_right
+        angle_dict[positions.ARMPIT_ANGLE_LEFT] = arm_torso_angle_left
+        angle_dict[positions.ARMPIT_ANGLE_RIGHT] = arm_torso_angle_right
+
     
 
     return angle_dict
 
+#Evaluate poses 
 
 #Score the handstand 
 def evaluateHandstand(landmarks):
@@ -143,11 +145,16 @@ def evaluateHandstand(landmarks):
     
     
     # Calulate score 
-    angle_sum = 0
-    for value in angles.values():
-        angle_sum += value
+    angle_sum = {
+        angles[positions.ARM_ANGLE_LEFT]: 180,
+        angles[positions.ARM_ANGLE_RIGHT]: 180, 
+        angles[positions.LEG_ANGLE_LEFT]: 180,
+        angles[positions.LEG_ANGLE_RIGHT]: 180, 
+        angles[positions.STACK_ANGLE_LEFT]: 180,
+        angles[positions.STACK_ANGLE_RIGHT]: 180
+    }
 
-    score = calculateScoreHS(angle_sum, len(angles))
+    score = calculateScore(angle_sum)
     percentage = str(score) + "%"
 
 
@@ -181,19 +188,19 @@ def evaluateFrontLever(landmarks):
     else:
         leg_correction = "Legs Good"
 
-    if 60 < angles[positions.FRONT_LEVER_HAND_POSITION_LEFT] < 100 or 60 < angles[positions.FRONT_LEVER_HAND_POSITION_RIGHT] < 100:
+    if 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] < 100 or 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] < 100:
         # 
         wrist_position = "Good, hands over hips"
     else:
         wrist_position = "Hands not over hips"
     
     #TODO:gotta figure how this check works or if needed 
-    if angles[positions.FRONT_LEVER_ARM_TORSO_RIGHT] > 45.0 or angles[positions.FRONT_LEVER_ARM_TORSO_LEFT] > 45.0:
+    if angles[positions.ARMPIT_ANGLE_LEFT] > 45.0 or angles[positions.ARMPIT_ANGLE_RIGHT] > 45.0:
         arm_angle = "arms to raised"
     else:
         arm_angle = "Arm Angle Good"
 
-    if angles[positions.FRONT_LEVER_SHOULDER_ANKLE_LEFT] < 170.0 or angles[positions.FRONT_LEVER_SHOULDER_ANKLE_RIGHT] < 170.0:
+    if angles[positions.FLAT_BODY_LEFT] < 170.0 or angles[positions.FLAT_BODY_RIGHT] < 170.0:
         flat_body = "Body not flat"
     else:
         flat_body = "Good flat body"
@@ -204,11 +211,11 @@ def evaluateFrontLever(landmarks):
         angles[positions.ARM_ANGLE_RIGHT]: 180, 
         angles[positions.LEG_ANGLE_LEFT]: 180,
         angles[positions.LEG_ANGLE_RIGHT]: 180, 
-        angles[positions.FRONT_LEVER_HAND_POSITION_LEFT]: 90,
-        angles[positions.FRONT_LEVER_HAND_POSITION_RIGHT]: 90
+        angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT]: 90,
+        angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT]: 90
     }
 
-    score = calculateScoreFrontLever(angle_sum)
+    score = calculateScore(angle_sum)
     percentage = str(score) + "%"
 
     # Render tips and score 
@@ -220,6 +227,120 @@ def evaluateFrontLever(landmarks):
     return 
 
 
+#Score the planche
+def evaluatePlanche(landmarks):
+    arm_correction = "Good"
+    leg_correction = "Good"
+    wrist_position = "Good"
+    arm_angle = "Good"
+    flat_body = "Good"
+
+
+    angles = getAngles(landmarks, skills.PLANCHE)
+
+
+    if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
+        arm_correction = "Arms too bent"
+    else:
+        arm_correction = "Arms Good"
+
+    if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
+        leg_correction = "Straighten legs"
+    else:
+        leg_correction = "Legs Good"
+
+    if 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] < 100 or 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] < 100:
+        # 
+        wrist_position = "Good, hands over hips"
+    else:
+        wrist_position = "Hands not over hips"
+    
+    #TODO:gotta figure how this check works or if needed 
+    if angles[positions.ARMPIT_ANGLE_LEFT] < 20.0 or angles[positions.ARMPIT_ANGLE_RIGHT] < 20.0:
+        arm_angle = "Lift lower body"
+    else:
+        arm_angle = "Good"
+
+    if angles[positions.FLAT_BODY_LEFT] < 170.0 or angles[positions.FLAT_BODY_RIGHT] < 170.0:
+        flat_body = "Body not flat"
+    else:
+        flat_body = "Good flat body"
+    
+    #calculate score
+    angle_sum = {
+        angles[positions.ARM_ANGLE_LEFT]: 180,
+        angles[positions.ARM_ANGLE_RIGHT]: 180, 
+        angles[positions.LEG_ANGLE_LEFT]: 180,
+        angles[positions.LEG_ANGLE_RIGHT]: 180, 
+        angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT]: 90,
+        angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT]: 90
+    }
+
+    score = calculateScore(angle_sum)
+    percentage = str(score) + "%"
+
+    # Render tips and score 
+    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+
+    return 
+
+
+#Score the planche
+def evaluate90Hold(landmarks):
+    arm_correction = "Good"
+    leg_correction = "Good"
+    wrist_position = "Good"
+    flat_body = "Good"
+
+
+    angles = getAngles(landmarks, skills.NINTYHOLD)
+
+
+    if  80.0 < angles[positions.ARM_ANGLE_LEFT] < 105.0  or 80.0< angles[positions.ARM_ANGLE_RIGHT] < 105.0 :
+        arm_correction = "Good "
+    else:
+        arm_correction = "bend arms "
+
+    if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
+        leg_correction = "Straighten legs"
+    else:
+        leg_correction = "Legs Good"
+
+    if 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] < 100 or 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] < 100:
+        # 
+        wrist_position = "Good, hands over hips"
+    else:
+        wrist_position = "Hands not over hips"
+    
+    if angles[positions.FLAT_BODY_LEFT] < 170.0 or angles[positions.FLAT_BODY_RIGHT] < 170.0:
+        flat_body = "Body not flat"
+    else:
+        flat_body = "Good flat body"
+    
+    #calculate score
+    angle_sum = {
+        angles[positions.ARM_ANGLE_LEFT]: 90,
+        angles[positions.ARM_ANGLE_RIGHT]: 90, 
+        angles[positions.LEG_ANGLE_LEFT]: 180,
+        angles[positions.LEG_ANGLE_RIGHT]: 180, 
+        angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT]: 90,
+        angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT]: 90
+    }
+
+    score = calculateScore(angle_sum)
+    percentage = str(score) + "%"
+
+    # Render tips and score 
+    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+
+    return 
+# Determines what skill is being shown at the moment
 def detect_skill(landmarks):
 
     #hand value coordinates
@@ -290,9 +411,11 @@ if __name__ == "__main__":
                     skill_name = "Front Lever"
                 elif skill == skills.NINTYHOLD:
                     #TODO: evaluate 
+                    evaluate90Hold(landmarks)
                     skill_name = "90 Hold"
                 elif skill == skills.PLANCHE:
                     #TODO: evaluate 
+                    evaluatePlanche(landmarks)
                     skill_name = "Planche"
 
                 cv2.putText(image, skill_name, (200, 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
