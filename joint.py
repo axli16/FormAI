@@ -25,8 +25,15 @@ def calculateScoreHS(total_angle, num_angles):
     score = (total_angle / (180 * num_angles)) * 100
     return int(score)
 
-def calculateScoreFrontLever():
-    return 100
+def calculateScoreFrontLever(total_angle):
+    angle = 0
+    angleP = 0
+    for key, value in total_angle.items():
+        angle += key
+        angleP += value 
+    score = (angle / (angleP)) * 100
+    return int(score)
+
 # Rendering angles on joint point 
 def renderAngle( point, angle):
     # Visualize angle 
@@ -157,6 +164,8 @@ def evaluateFrontLever(landmarks):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
+    arm_angle = "Good"
+    flat_body = "Good"
 
 
     angles = getAngles(landmarks, skills.FRONTLEVER)
@@ -181,13 +190,25 @@ def evaluateFrontLever(landmarks):
     #TODO:gotta figure how this check works or if needed 
     if angles[positions.FRONT_LEVER_ARM_TORSO_RIGHT] > 45.0 or angles[positions.FRONT_LEVER_ARM_TORSO_LEFT] > 45.0:
         arm_angle = "arms to raised"
+    else:
+        arm_angle = "Arm Angle Good"
+
+    if angles[positions.FRONT_LEVER_SHOULDER_ANKLE_LEFT] < 170.0 or angles[positions.FRONT_LEVER_SHOULDER_ANKLE_RIGHT] < 170.0:
+        flat_body = "Body not flat"
+    else:
+        flat_body = "Good flat body"
     
     #calculate score
-    angle_sum = 0
-    for value in angles.values():
-        angle_sum += value
+    angle_sum = {
+        angles[positions.ARM_ANGLE_LEFT]: 180,
+        angles[positions.ARM_ANGLE_RIGHT]: 180, 
+        angles[positions.LEG_ANGLE_LEFT]: 180,
+        angles[positions.LEG_ANGLE_RIGHT]: 180, 
+        angles[positions.FRONT_LEVER_HAND_POSITION_LEFT]: 90,
+        angles[positions.FRONT_LEVER_HAND_POSITION_RIGHT]: 90
+    }
 
-    score = calculateScoreHS(angle_sum, len(angles))
+    score = calculateScoreFrontLever(angle_sum)
     percentage = str(score) + "%"
 
     # Render tips and score 
