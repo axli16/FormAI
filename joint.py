@@ -93,6 +93,18 @@ def getAngles(landmarks, skill):
         renderAngle(hipR, right_hand_position_front_lever)
         angle_dict[positions.FRONT_LEVER_HAND_POSITION_LEFT] = left_hand_position_front_lever
         angle_dict[positions.FRONT_LEVER_HAND_POSITION_RIGHT] = right_hand_position_front_lever
+
+        #Flat body (Right now the only way I can think of to see if the body is paralled to ground as )
+        left_shoulder_ankle = calculate_angle(shoulderL, hipL, ankleL)
+        right_shoulder_ankle = calculate_angle(shoulderR, hipR, ankleR)
+        angle_dict[positions.FRONT_LEVER_SHOULDER_ANKLE_LEFT] = left_shoulder_ankle
+        angle_dict[positions.FRONT_LEVER_SHOULDER_ANKLE_RIGHT] = right_shoulder_ankle
+
+        # Angle of arm and body to make sure paralled to ground
+        arm_torso_angle_left = calculate_angle(wristL, shoulderL, hipL)
+        arm_torso_angle_right = calculate_angle(wristR, shoulderR, hipR)
+        angle_dict[positions.FRONT_LEVER_ARM_TORSO_LEFT] = arm_torso_angle_left
+        angle_dict[positions.FRONT_LEVER_ARM_TORSO_RIGHT] = arm_torso_angle_right
     
 
     return angle_dict
@@ -146,7 +158,9 @@ def evaluateFrontLever(landmarks):
     leg_correction = "Good"
     wrist_position = "Good"
 
+
     angles = getAngles(landmarks, skills.FRONTLEVER)
+
 
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
@@ -163,6 +177,10 @@ def evaluateFrontLever(landmarks):
         wrist_position = "Good, hands over hips"
     else:
         wrist_position = "Hands not over hips"
+    
+    #TODO:gotta figure how this check works or if needed 
+    if angles[positions.FRONT_LEVER_ARM_TORSO_RIGHT] > 45.0 or angles[positions.FRONT_LEVER_ARM_TORSO_LEFT] > 45.0:
+        arm_angle = "arms to raised"
     
     #calculate score
     angle_sum = 0
@@ -249,6 +267,12 @@ if __name__ == "__main__":
                 elif skill == skills.FRONTLEVER:
                     evaluateFrontLever(landmarks)
                     skill_name = "Front Lever"
+                elif skill == skills.NINTYHOLD:
+                    #TODO: evaluate 
+                    skill_name = "90 Hold"
+                elif skill == skills.PLANCHE:
+                    #TODO: evaluate 
+                    skill_name = "Planche"
 
                 cv2.putText(image, skill_name, (200, 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
             except:
