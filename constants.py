@@ -2,6 +2,7 @@ from enum import Enum
 
 #static skills 
 class skills(Enum):     
+    UNKNOWN = 0
     HANDSTAND = 1
     FRONTLEVER = 2
     PLANCHE = 3

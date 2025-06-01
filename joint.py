@@ -25,7 +25,9 @@ def calculateScoreHS(total_angle, num_angles):
     score = (total_angle / (180 * num_angles)) * 100
     return int(score)
 
-# Rendering 
+def calculateScoreFrontLever():
+    return 100
+# Rendering angles on joint point 
 def renderAngle( point, angle):
     # Visualize angle 
     cv2.putText(image, str(int(angle)),
@@ -33,6 +35,8 @@ def renderAngle( point, angle):
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
                 )
 
+
+# Get the angles based on the points and what skill it is 
 def getAngles(landmarks, skill):
     angle_dict = {}
 
@@ -93,6 +97,8 @@ def getAngles(landmarks, skill):
 
     return angle_dict
 
+
+#Score the handstand 
 def evaluateHandstand(landmarks):
     arm_correction = "Good"
     leg_correction = "Good"
@@ -134,7 +140,7 @@ def evaluateHandstand(landmarks):
 
     return 
 
-
+#score the front lever 
 def evaluateFrontLever(landmarks):
     arm_correction = "Good"
     leg_correction = "Good"
@@ -152,11 +158,11 @@ def evaluateFrontLever(landmarks):
     else:
         leg_correction = "Legs Good"
 
-    if 80 < angles[positions.FRONT_LEVER_HAND_POSITION_LEFT] < 100 or 80 < angles[positions.FRONT_LEVER_HAND_POSITION_RIGHT] < 100:
-        # Wrist shoulder and hips are not stacked 
-        wrist_position = "Hands not over hips"
-    else:
+    if 60 < angles[positions.FRONT_LEVER_HAND_POSITION_LEFT] < 100 or 60 < angles[positions.FRONT_LEVER_HAND_POSITION_RIGHT] < 100:
+        # 
         wrist_position = "Good, hands over hips"
+    else:
+        wrist_position = "Hands not over hips"
     
     #calculate score
     angle_sum = 0
@@ -174,6 +180,44 @@ def evaluateFrontLever(landmarks):
 
     return 
 
+
+def detect_skill(landmarks):
+
+    #hand value coordinates
+    left_wrist_position = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
+    right_wrist_position = [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
+
+    # Hip value coordinates 
+    left_hip_position = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
+    right_hip_position = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
+
+    # 
+    if left_wrist_position[1] < left_hip_position[1] and right_wrist_position[1] < right_hip_position[1]: # if wrist position is higher than the hip position 
+        return skills.FRONTLEVER
+    else:
+        left_shoulder_position = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+        right_shoulder_position = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
+
+        angle_shoulder_left = calculate_angle(left_wrist_position, left_shoulder_position, left_hip_position)
+        angle_shoulder_right = calculate_angle(right_wrist_position, right_shoulder_position, right_hip_position)
+
+        if angle_shoulder_left > 100.0 and angle_shoulder_right > 100.0 and left_hip_position[1] < left_shoulder_position[1] and right_hip_position[1] < right_shoulder_position[1]:
+            return skills.HANDSTAND
+        
+        left_elbow_position = [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
+        right_elbow_position = [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
+
+        angle_elbow_left = calculate_angle(left_shoulder_position, left_elbow_position, left_wrist_position)
+        angle_elbow_right = calculate_angle(right_shoulder_position, right_elbow_position, right_wrist_position)
+
+        if angle_elbow_left < 165.0 and angle_elbow_right < 165.0: 
+            return skills.NINTYHOLD
+        else: 
+            return skills.PLANCHE
+    
+    return skills.UNKNOWN
+
+        
 if __name__ == "__main__":
     cap = cv2.VideoCapture(0)
     skill = skills.HANDSTAND
@@ -195,9 +239,18 @@ if __name__ == "__main__":
 
             try: 
                 landmarks = results.pose_landmarks.landmark
+
+                skill = detect_skill(landmarks)
+
+                skill_name = ""
                 if skill == skills.HANDSTAND:
                     evaluateHandstand(landmarks)
+                    skill_name = "Handstand"
+                elif skill == skills.FRONTLEVER:
+                    evaluateFrontLever(landmarks)
+                    skill_name = "Front Lever"
 
+                cv2.putText(image, skill_name, (200, 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
             except:
                 pass
 
