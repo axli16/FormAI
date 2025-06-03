@@ -1,7 +1,10 @@
+from flask import Flask, Response
 import cv2
 import mediapipe as mp
 import numpy as np
 from constants import skills, positions
+
+app = Flask(__name__)
 
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
@@ -34,8 +37,9 @@ def calculateScore(total_angle):
     score = (angle / (angleP)) * 100
     return int(score)
 
+
 # Rendering angles on joint point 
-def renderAngle( point, angle):
+def renderAngle( point, angle, image):
     # Visualize angle 
     cv2.putText(image, str(int(angle)),
                 tuple(np.multiply(point, [640, 480]).astype(int)),
@@ -44,7 +48,7 @@ def renderAngle( point, angle):
 
 
 # Get the angles based on the points and what skill it is 
-def getAngles(landmarks, skill):
+def getAngles(landmarks, skill, image):
     angle_dict = {}
 
     #Left arm straight
@@ -53,7 +57,7 @@ def getAngles(landmarks, skill):
     wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
 
     left_arm_angle = calculate_angle(shoulderL, elbowL, wristL)
-    renderAngle(elbowL, left_arm_angle)
+    renderAngle(elbowL, left_arm_angle, image)
     angle_dict[positions.ARM_ANGLE_LEFT] = left_arm_angle
     
     # Right arm straight
@@ -62,7 +66,7 @@ def getAngles(landmarks, skill):
     wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
 
     right_arm_angle = calculate_angle(shoulderR, elbowR, wristR)
-    renderAngle( elbowR, right_arm_angle)
+    renderAngle( elbowR, right_arm_angle, image)
     angle_dict[positions.ARM_ANGLE_RIGHT] = right_arm_angle
 
     # Left Leg straight
@@ -71,7 +75,7 @@ def getAngles(landmarks, skill):
     ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
 
     left_leg_angle = calculate_angle(hipL, kneeL, ankleL)
-    renderAngle( kneeL, left_leg_angle)
+    renderAngle( kneeL, left_leg_angle, image)
     angle_dict[positions.LEG_ANGLE_LEFT] = left_leg_angle
     
     # Right leg straight
@@ -80,15 +84,15 @@ def getAngles(landmarks, skill):
     ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
 
     right_leg_angle = calculate_angle(hipR, kneeR, ankleR)
-    renderAngle(kneeR, right_leg_angle)
+    renderAngle(kneeR, right_leg_angle, image)
     angle_dict[positions.LEG_ANGLE_RIGHT] = right_leg_angle
 
     if skill == skills.HANDSTAND:
         # Stack 
         stack_angle_left = calculate_angle(wristL, shoulderL, hipL)
         stack_angle_right = calculate_angle(wristR, shoulderR, hipR)
-        renderAngle(shoulderL, stack_angle_left)
-        renderAngle(shoulderR, stack_angle_right)
+        renderAngle(shoulderL, stack_angle_left, image)
+        renderAngle(shoulderR, stack_angle_right, image)
         angle_dict[positions.STACK_ANGLE_LEFT] = stack_angle_left
         angle_dict[positions.STACK_ANGLE_RIGHT] = stack_angle_right
 
@@ -96,8 +100,8 @@ def getAngles(landmarks, skill):
         # Hand position over hips around 90 degrees
         left_hand_position_front_lever = calculate_angle(wristL, hipL, shoulderL)
         right_hand_position_front_lever = calculate_angle(wristR, hipR, shoulderR)
-        renderAngle(hipL, left_hand_position_front_lever)
-        renderAngle(hipR, right_hand_position_front_lever)
+        renderAngle(hipL, left_hand_position_front_lever, image)
+        renderAngle(hipR, right_hand_position_front_lever, image)
         angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] = left_hand_position_front_lever
         angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] = right_hand_position_front_lever
 
@@ -120,12 +124,12 @@ def getAngles(landmarks, skill):
 #Evaluate poses 
 
 #Score the handstand 
-def evaluateHandstand(landmarks):
+def evaluateHandstand(landmarks, image):
     arm_correction = "Good"
     leg_correction = "Good"
     stack_correction = "Good"
 
-    angles = getAngles(landmarks, skills.HANDSTAND)
+    angles = getAngles(landmarks, skills.HANDSTAND, image)
     
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
@@ -167,7 +171,7 @@ def evaluateHandstand(landmarks):
     return 
 
 #score the front lever 
-def evaluateFrontLever(landmarks):
+def evaluateFrontLever(landmarks, image):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
@@ -175,7 +179,7 @@ def evaluateFrontLever(landmarks):
     flat_body = "Good"
 
 
-    angles = getAngles(landmarks, skills.FRONTLEVER)
+    angles = getAngles(landmarks, skills.FRONTLEVER, image)
 
 
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
@@ -228,7 +232,7 @@ def evaluateFrontLever(landmarks):
 
 
 #Score the planche
-def evaluatePlanche(landmarks):
+def evaluatePlanche(landmarks, image):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
@@ -236,7 +240,7 @@ def evaluatePlanche(landmarks):
     flat_body = "Good"
 
 
-    angles = getAngles(landmarks, skills.PLANCHE)
+    angles = getAngles(landmarks, skills.PLANCHE, image)
 
 
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
@@ -289,14 +293,14 @@ def evaluatePlanche(landmarks):
 
 
 #Score the planche
-def evaluate90Hold(landmarks):
+def evaluate90Hold(landmarks, image):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
     flat_body = "Good"
 
 
-    angles = getAngles(landmarks, skills.NINTYHOLD)
+    angles = getAngles(landmarks, skills.NINTYHOLD, image)
 
 
     if  80.0 < angles[positions.ARM_ANGLE_LEFT] < 105.0  or 80.0< angles[positions.ARM_ANGLE_RIGHT] < 105.0 :
@@ -377,8 +381,8 @@ def detect_skill(landmarks):
     
     return skills.UNKNOWN
 
-        
-if __name__ == "__main__":
+
+def runVideo():
     cap = cv2.VideoCapture(0)
     skill = skills.HANDSTAND
     ## Setup mediapipe instance 
@@ -404,18 +408,18 @@ if __name__ == "__main__":
 
                 skill_name = ""
                 if skill == skills.HANDSTAND:
-                    evaluateHandstand(landmarks)
+                    evaluateHandstand(landmarks, image)
                     skill_name = "Handstand"
                 elif skill == skills.FRONTLEVER:
-                    evaluateFrontLever(landmarks)
+                    evaluateFrontLever(landmarks, image)
                     skill_name = "Front Lever"
                 elif skill == skills.NINTYHOLD:
                     #TODO: evaluate 
-                    evaluate90Hold(landmarks)
+                    evaluate90Hold(landmarks, image)
                     skill_name = "90 Hold"
                 elif skill == skills.PLANCHE:
                     #TODO: evaluate 
-                    evaluatePlanche(landmarks)
+                    evaluatePlanche(landmarks, image)
                     skill_name = "Planche"
 
                 cv2.putText(image, skill_name, (200, 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
@@ -432,3 +436,6 @@ if __name__ == "__main__":
 
         cap.release()
         cv2.destroyAllWindows()
+        
+if __name__ == "__main__":
+    runVideo()
