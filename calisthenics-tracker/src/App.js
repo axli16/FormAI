@@ -15,12 +15,13 @@ const Header = () => {
 };
 
 // Video Display Component
-const VideoDisplay = ({ isRecording, hasRecordedVideo, isPlaying, onPlayToggle }) => {
+const VideoDisplay = ({ src, isRecording, hasRecordedVideo, isPlaying, onPlayToggle }) => {
   return (
     <div className="relative bg-black rounded-2xl shadow-2xl overflow-hidden border-2 border-red-500/30">
-      <video
+      <img
+        src={src}
+        alt="Live Feed"
         className="w-full aspect-video object-cover bg-gray-800"
-        playsInline
       />
       
       {/* Recording Indicator */}
@@ -153,12 +154,19 @@ export default function App() {
       
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-4xl">
-          <VideoDisplay 
+          <VideoDisplay
+            src='http://127.0.0.1:5000/video_feed'
             isRecording={isRecording}
             hasRecordedVideo={hasRecordedVideo}
             isPlaying={isPlaying}
             onPlayToggle={handlePlayToggle}
           />
+          {/* <VideoDisplay 
+            isRecording={isRecording}
+            hasRecordedVideo={hasRecordedVideo}
+            isPlaying={isPlaying}
+            onPlayToggle={handlePlayToggle}
+          /> */}
           
           <StatusText 
             hasRecordedVideo={hasRecordedVideo}

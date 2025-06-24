@@ -1,13 +1,7 @@
-from flask import Flask, Response
 import cv2
-import mediapipe as mp
 import numpy as np
 from constants import skills, positions
 
-app = Flask(__name__)
-
-mp_drawing = mp.solutions.drawing_utils
-mp_pose = mp.solutions.pose
 
 
 # Calculations 
@@ -48,7 +42,7 @@ def renderAngle( point, angle, image):
 
 
 # Get the angles based on the points and what skill it is 
-def getAngles(landmarks, skill, image):
+def getAngles(landmarks, skill, image, mp_pose):
     angle_dict = {}
 
     #Left arm straight
@@ -124,12 +118,12 @@ def getAngles(landmarks, skill, image):
 #Evaluate poses 
 
 #Score the handstand 
-def evaluateHandstand(landmarks, image):
+def evaluateHandstand(angles):
     arm_correction = "Good"
     leg_correction = "Good"
     stack_correction = "Good"
 
-    angles = getAngles(landmarks, skills.HANDSTAND, image)
+    # angles = getAngles(landmarks, skills.HANDSTAND, image)
     
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
@@ -163,15 +157,15 @@ def evaluateHandstand(landmarks, image):
 
 
     # Render tips and score 
-    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, stack_correction, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, stack_correction, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
-    return 
+    return [arm_correction, leg_correction, stack_correction, percentage]
 
 #score the front lever 
-def evaluateFrontLever(landmarks, image):
+def evaluateFrontLever( image, angles):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
@@ -179,7 +173,7 @@ def evaluateFrontLever(landmarks, image):
     flat_body = "Good"
 
 
-    angles = getAngles(landmarks, skills.FRONTLEVER, image)
+    # angles = getAngles(landmarks, skills.FRONTLEVER, image)
 
 
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
@@ -223,16 +217,16 @@ def evaluateFrontLever(landmarks, image):
     percentage = str(score) + "%"
 
     # Render tips and score 
-    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
-    return 
+    return [arm_correction, leg_correction, wrist_position, percentage]
 
 
 #Score the planche
-def evaluatePlanche(landmarks, image):
+def evaluatePlanche( image, angles):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
@@ -240,7 +234,7 @@ def evaluatePlanche(landmarks, image):
     flat_body = "Good"
 
 
-    angles = getAngles(landmarks, skills.PLANCHE, image)
+    # angles = getAngles(landmarks, skills.PLANCHE, image)
 
 
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
@@ -284,23 +278,23 @@ def evaluatePlanche(landmarks, image):
     percentage = str(score) + "%"
 
     # Render tips and score 
-    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
-    return 
+    return [arm_correction, leg_correction, wrist_position, percentage]
 
 
 #Score the planche
-def evaluate90Hold(landmarks, image):
+def evaluate90Hold( image, angles):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
     flat_body = "Good"
 
 
-    angles = getAngles(landmarks, skills.NINTYHOLD, image)
+    # angles = getAngles(landmarks, skills.NINTYHOLD, image)
 
 
     if  80.0 < angles[positions.ARM_ANGLE_LEFT] < 105.0  or 80.0< angles[positions.ARM_ANGLE_RIGHT] < 105.0 :
@@ -338,14 +332,15 @@ def evaluate90Hold(landmarks, image):
     percentage = str(score) + "%"
 
     # Render tips and score 
-    cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
-    cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, leg_correction, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
+    # cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
-    return 
+    return [arm_correction, leg_correction, wrist_position, percentage]
+
 # Determines what skill is being shown at the moment
-def detect_skill(landmarks):
+def detect_skill(landmarks, mp_pose):
 
     #hand value coordinates
     left_wrist_position = [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
@@ -380,62 +375,3 @@ def detect_skill(landmarks):
             return skills.PLANCHE
     
     return skills.UNKNOWN
-
-
-def runVideo():
-    cap = cv2.VideoCapture(0)
-    skill = skills.HANDSTAND
-    ## Setup mediapipe instance 
-    with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as pose: # confidence for tracking too high means no tracking as it can't detect 
-        while cap.isOpened(): 
-            ret, frame = cap.read() 
-
-            # Recolour to RGB 
-            image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            image.flags.writeable = False 
-            
-            # Make Detection
-            results = pose.process(image)
-
-            # BGR for open cv 
-            image.flags.writeable = True 
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-            try: 
-                landmarks = results.pose_landmarks.landmark
-
-                skill = detect_skill(landmarks)
-
-                skill_name = ""
-                if skill == skills.HANDSTAND:
-                    evaluateHandstand(landmarks, image)
-                    skill_name = "Handstand"
-                elif skill == skills.FRONTLEVER:
-                    evaluateFrontLever(landmarks, image)
-                    skill_name = "Front Lever"
-                elif skill == skills.NINTYHOLD:
-                    #TODO: evaluate 
-                    evaluate90Hold(landmarks, image)
-                    skill_name = "90 Hold"
-                elif skill == skills.PLANCHE:
-                    #TODO: evaluate 
-                    evaluatePlanche(landmarks, image)
-                    skill_name = "Planche"
-
-                cv2.putText(image, skill_name, (200, 20), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-            except:
-                pass
-
-            # Render detections 
-            mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_pose.POSE_CONNECTIONS)
-
-            cv2.imshow('Mediapipe Feed', image)
-
-            if cv2.waitKey(10) & 0xFF == ord('q'):
-                break
-
-        cap.release()
-        cv2.destroyAllWindows()
-        
-if __name__ == "__main__":
-    runVideo()
