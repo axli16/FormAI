@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Video, VideoOff, Upload, Play, Pause, RotateCcw } from 'lucide-react';
 
 // Header Component
@@ -11,6 +11,61 @@ const Header = () => {
         </h1>
       </div>
     </header>
+  );
+};
+
+// Skill Info Sidebar Component
+const SkillInfoSidebar = ({ skillName, feedback, score }) => {
+  return (
+    <div className="bg-black/40 backdrop-blur-sm rounded-2xl border border-red-500/30 p-6 h-full">
+      {/* Skill Name Section */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-red-400 mb-3">Current Skill</h2>
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <p className="text-white font-medium text-xl">
+            {skillName || "No skill selected"}
+          </p>
+        </div>
+      </div>
+
+      {/* Score Section */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-red-400 mb-3">Score</h3>
+        <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4">
+          {score !== null && score !== undefined ? (
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">{score}</div>
+              <div className="w-full bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-red-400 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${score}` }}
+                ></div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-center">No score available</p>
+          )}
+        </div>
+      </div>
+
+      {/* Feedback Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-red-400 mb-3">Feedback</h3>
+        <div className="bg-gray-800/50 border border-gray-600 rounded-lg p-4 min-h-[200px]">
+          {feedback ? (
+            <div className="space-y-2">
+              {feedback.map((line, index) => (
+                <p key={index} className="text-gray-300 text-sm leading-relaxed">
+                  {line}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400 text-sm">No feedback available</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -126,6 +181,20 @@ export default function App() {
   const [hasRecordedVideo, setHasRecordedVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Skill info state - connect these to your backend
+  const [feedback, setFeedback] = useState({ skill: "", grade: "80", tips: [] });
+
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetch("http://localhost:5000/feedback")
+        .then(res => res.json())
+        .then(data => setFeedback(data));
+    }, 500); // every 0.5s
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Handler functions - connect these to your backend
   const handleRecordToggle = () => {
     setIsRecording(!isRecording);
@@ -151,27 +220,43 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900 to-black flex flex-col">
       <Header />
-      
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-4xl">
-          <VideoDisplay
-            src='http://127.0.0.1:5000/video_feed'
-            isRecording={isRecording}
-            hasRecordedVideo={hasRecordedVideo}
-            isPlaying={isPlaying}
-            onPlayToggle={handlePlayToggle}
-          />
-          {/* <VideoDisplay 
-            isRecording={isRecording}
-            hasRecordedVideo={hasRecordedVideo}
-            isPlaying={isPlaying}
-            onPlayToggle={handlePlayToggle}
-          /> */}
-          
-          <StatusText 
-            hasRecordedVideo={hasRecordedVideo}
-            isRecording={isRecording}
-          />
+      <main className="flex-1 p-4">
+        <div className="max-w-7xl mx-auto h-full">
+          <div className="flex gap-4 h-full">
+            {/* Left Side - Video Display (80% width) */}  
+            <div className="flex-1 lg:w-4/5 flex flex-col justify-center">
+              <VideoDisplay 
+                src = 'http://127.0.0.1:5000/video_feed'
+                isRecording={isRecording}
+                hasRecordedVideo={hasRecordedVideo}
+                isPlaying={isPlaying}
+                onPlayToggle={handlePlayToggle}
+              />
+              
+              <StatusText 
+                hasRecordedVideo={hasRecordedVideo}
+                isRecording={isRecording}
+              />
+              
+              {/* Mobile Skill Info - Shows below video on small screens */}
+              <div className="block lg:hidden mt-6">
+                <SkillInfoSidebar 
+                  skillName={feedback.skill}
+                  feedback={feedback.tips}
+                  score={feedback.grade}
+                />
+              </div>
+            </div>
+
+            {/* Right Sidebar - Skill Info (20% width) */}
+            <div className="w-1/5 min-w-[280px] hidden lg:block">
+              <SkillInfoSidebar 
+                skillName={feedback.skill}
+                feedback={feedback.tips}
+                score={feedback.grade}
+              />
+            </div>
+          </div>
         </div>
       </main>
 

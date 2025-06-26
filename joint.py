@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from constants import skills, positions
 
@@ -31,89 +30,6 @@ def calculateScore(total_angle):
     score = (angle / (angleP)) * 100
     return int(score)
 
-
-# Rendering angles on joint point 
-def renderAngle( point, angle, image):
-    # Visualize angle 
-    cv2.putText(image, str(int(angle)),
-                tuple(np.multiply(point, [640, 480]).astype(int)),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2, cv2.LINE_AA
-                )
-
-
-# Get the angles based on the points and what skill it is 
-def getAngles(landmarks, skill, image, mp_pose):
-    angle_dict = {}
-
-    #Left arm straight
-    shoulderL = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
-    elbowL =  [landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value].y]
-    wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
-
-    left_arm_angle = calculate_angle(shoulderL, elbowL, wristL)
-    renderAngle(elbowL, left_arm_angle, image)
-    angle_dict[positions.ARM_ANGLE_LEFT] = left_arm_angle
-    
-    # Right arm straight
-    shoulderR = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
-    elbowR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ELBOW.value].y]
-    wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
-
-    right_arm_angle = calculate_angle(shoulderR, elbowR, wristR)
-    renderAngle( elbowR, right_arm_angle, image)
-    angle_dict[positions.ARM_ANGLE_RIGHT] = right_arm_angle
-
-    # Left Leg straight
-    hipL = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
-    kneeL =  [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
-    ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
-
-    left_leg_angle = calculate_angle(hipL, kneeL, ankleL)
-    renderAngle( kneeL, left_leg_angle, image)
-    angle_dict[positions.LEG_ANGLE_LEFT] = left_leg_angle
-    
-    # Right leg straight
-    hipR = [landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_HIP.value].y]
-    kneeR =  [landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_KNEE.value].y]
-    ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
-
-    right_leg_angle = calculate_angle(hipR, kneeR, ankleR)
-    renderAngle(kneeR, right_leg_angle, image)
-    angle_dict[positions.LEG_ANGLE_RIGHT] = right_leg_angle
-
-    if skill == skills.HANDSTAND:
-        # Stack 
-        stack_angle_left = calculate_angle(wristL, shoulderL, hipL)
-        stack_angle_right = calculate_angle(wristR, shoulderR, hipR)
-        renderAngle(shoulderL, stack_angle_left, image)
-        renderAngle(shoulderR, stack_angle_right, image)
-        angle_dict[positions.STACK_ANGLE_LEFT] = stack_angle_left
-        angle_dict[positions.STACK_ANGLE_RIGHT] = stack_angle_right
-
-    elif skill == skills.FRONTLEVER or skill == skills.PLANCHE or skill == skills.NINTYHOLD:
-        # Hand position over hips around 90 degrees
-        left_hand_position_front_lever = calculate_angle(wristL, hipL, shoulderL)
-        right_hand_position_front_lever = calculate_angle(wristR, hipR, shoulderR)
-        renderAngle(hipL, left_hand_position_front_lever, image)
-        renderAngle(hipR, right_hand_position_front_lever, image)
-        angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] = left_hand_position_front_lever
-        angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] = right_hand_position_front_lever
-
-        #Flat body (Right now the only way I can think of to see if the body is paralled to ground as )
-        left_shoulder_ankle = calculate_angle(shoulderL, hipL, ankleL)
-        right_shoulder_ankle = calculate_angle(shoulderR, hipR, ankleR)
-        angle_dict[positions.FLAT_BODY_LEFT] = left_shoulder_ankle
-        angle_dict[positions.FLAT_BODY_RIGHT] = right_shoulder_ankle
-
-        # Angle of arm and body to make sure paralled to ground
-        arm_torso_angle_left = calculate_angle(wristL, shoulderL, hipL)
-        arm_torso_angle_right = calculate_angle(wristR, shoulderR, hipR)
-        angle_dict[positions.ARMPIT_ANGLE_LEFT] = arm_torso_angle_left
-        angle_dict[positions.ARMPIT_ANGLE_RIGHT] = arm_torso_angle_right
-
-    
-
-    return angle_dict
 
 #Evaluate poses 
 
@@ -165,7 +81,7 @@ def evaluateHandstand(angles):
     return [arm_correction, leg_correction, stack_correction, percentage]
 
 #score the front lever 
-def evaluateFrontLever( image, angles):
+def evaluateFrontLever( angles):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
@@ -226,7 +142,7 @@ def evaluateFrontLever( image, angles):
 
 
 #Score the planche
-def evaluatePlanche( image, angles):
+def evaluatePlanche(angles):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"
@@ -287,7 +203,7 @@ def evaluatePlanche( image, angles):
 
 
 #Score the planche
-def evaluate90Hold( image, angles):
+def evaluate90Hold(angles):
     arm_correction = "Good"
     leg_correction = "Good"
     wrist_position = "Good"

@@ -7,28 +7,41 @@ import VideoFeed
 app = Flask(__name__)
 CORS(app)
 feed = VideoFeed.VideoCamera()
+feedback = {"skill": "", "grade": "", "tips":[]}
 
 def generate_frames():
     while True:
         frame = feed.get_frame()
         if frame is None:
             continue 
-
+        # update_feedback()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/feedback')        
-def feedback():
+def getfeedback():
+    update_feedback()
+    return jsonify({
+        "skill": str(feedback["skill"]) or "Detecting...",
+        "grade": str(feedback["grade"]) or "Pending",
+        "tips": list(feedback["tips"]) or "Looking"
+    })
+
+def update_feedback():
+    global feedback
     skill_detected = feed.detect_skill()
     skill_feedback = feed.feed_back(skill_detected)
-    accuracy = skill_feedback[-2]
+    accuracy = skill_feedback[-2] 
     skill_name = skill_feedback[-1]
 
     tips = []
     for i in range(0, len(skill_feedback) - 2):
         tips.append(skill_feedback[i])
-
-    return jsonify({"skill": skill_name, "accuracy": accuracy, "tips": tips})
+    
+    print(feedback)
+    feedback["skill"] = skill_name
+    feedback["grade"] = accuracy
+    feedback["tips"] = tips
 
 @app.route('/video_feed')
 def video_feed():
