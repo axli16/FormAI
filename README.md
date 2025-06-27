@@ -35,5 +35,5 @@ A full-stack web application built with **React** (frontend) and **Flask** (back
 git clone https://github.com/axli16/JointTrack.git
 python FlaskServer.py
 cd calisthenic-tracker
-npm run dev
+npm start dev
 ```
