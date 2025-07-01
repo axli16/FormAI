@@ -1,20 +1,25 @@
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, jsonify, request
 import os
 from flask_cors import CORS
+import tempfile
+
 import VideoFeed
+
 
 
 app = Flask(__name__)
 CORS(app)
+
 feed = VideoFeed.VideoCamera()
 feedback = {"skill": "", "grade": "", "tips":[]}
+streaming = True
 
 def generate_frames():
     while True:
         frame = feed.get_frame()
         if frame is None:
             continue 
-        # update_feedback()
+
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -38,10 +43,32 @@ def update_feedback():
     for i in range(0, len(skill_feedback) - 2):
         tips.append(skill_feedback[i])
     
-    print(feedback)
     feedback["skill"] = skill_name
     feedback["grade"] = accuracy
     feedback["tips"] = tips
+
+@app.route('/upload', methods=['POST'])
+def upload_video():
+    global video_file 
+
+    if 'video' not in request.files:
+        return "Np video file", 400
+    
+    file = request.files['video']
+    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+    file.save(tmp_file.name)
+
+    video_file = tmp_file.name
+
+    feed.switch_video_source(video_file)
+    streaming = False
+    return "Upload successful", 200
+
+@app.route('/reset')
+def reset_live():
+    streaming = True
+    feed.switch_video_source(0)
+    return "Live Feed Reset", 200
 
 @app.route('/video_feed')
 def video_feed():

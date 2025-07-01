@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Video, VideoOff, Upload, Play, Pause, RotateCcw } from 'lucide-react';
 
 // Header Component
@@ -56,7 +56,7 @@ const SkillInfoSidebar = ({ skillName, feedback, score }) => {
             <div className="space-y-2">
               {feedback.map((line, index) => (
                 <p key={index} className="text-gray-300 text-sm leading-relaxed">
-                  {line}
+                  - {line}
                 </p>
               ))}
             </div>
@@ -131,13 +131,15 @@ const ControlButtons = ({
   hasRecordedVideo, 
   onRecordToggle, 
   onUpload, 
-  onReset 
+  onReset,
+  handleClick,
+  inputRef
 }) => {
   return (
     <footer className="bg-black/30 backdrop-blur-sm border-t border-red-500/20 p-6">
       <div className="max-w-6xl mx-auto flex justify-center gap-6">
         {/* Record Button */}
-        <button
+        {/* <button
           onClick={onRecordToggle}
           disabled={hasRecordedVideo}
           className={`flex items-center gap-3 px-8 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -148,16 +150,23 @@ const ControlButtons = ({
         >
           {isRecording ? <VideoOff size={24} /> : <Video size={24} />}
           {isRecording ? 'Stop Recording' : 'Start Recording'}
-        </button>
+        </button> */}
 
         {/* Upload Button */}
         <button
-          onClick={onUpload}
+          onClick={handleClick}
           className="flex items-center gap-3 px-8 py-4 bg-white hover:bg-gray-100 text-gray-900 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
         >
           <Upload size={24} />
           Upload Video
         </button>
+        <input
+          type="file"
+          accept="video/*"
+          ref={inputRef}
+          onChange={onUpload}
+          style={{ display: 'none' }}
+        />
 
         {/* Reset Button */}
         {hasRecordedVideo && (
@@ -201,9 +210,34 @@ export default function App() {
     // TODO: Integrate with your backend recording logic
   };
 
-  const handleUpload = () => {
+
+  const inputRef = useRef(null);
+
+  const handleClick = () => {
+    inputRef.current.click();
+  }
+  const handleUpload = async (e) => {
     // TODO: Integrate with your backend upload logic
     console.log('Upload clicked');
+    const file = e.target.files[0];
+    if (!file) {
+      console.log("No file selected")
+      return;
+    }
+
+    const formData = new FormData(); 
+    formData.append('video', e.target.files[0]);
+
+    await fetch("http://localhost:5000/upload", {
+      method: "POST",
+      body: formData
+    })
+      .then(res => res.text())
+      .then(msg => {
+        console.log("Upload success:", msg);
+        setHasRecordedVideo(true);
+      })
+      .catch(err => console.error("Upload failed:", err));
   };
 
   const handlePlayToggle = () => {
@@ -226,7 +260,7 @@ export default function App() {
             {/* Left Side - Video Display (80% width) */}  
             <div className="flex-1 lg:w-4/5 flex flex-col justify-center">
               <VideoDisplay 
-                src = 'http://127.0.0.1:5000/video_feed'
+                src = {`http://localhost:5000/video_feed?${Date.now()}`}
                 isRecording={isRecording}
                 hasRecordedVideo={hasRecordedVideo}
                 isPlaying={isPlaying}
@@ -266,6 +300,8 @@ export default function App() {
         onRecordToggle={handleRecordToggle}
         onUpload={handleUpload}
         onReset={handleReset}
+        handleClick={handleClick}
+        inputRef={inputRef}
       />
     </div>
   );

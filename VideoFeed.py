@@ -1,18 +1,27 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+from threading import Lock
+
 import joint
 from constants import skills, positions
 
+
 class VideoCamera(object):
-    def __init__(self):
-        self.video = cv2.VideoCapture(0)
+    def __init__(self, video_source= 0):
+        self.video = cv2.VideoCapture(video_source)
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
         self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
         self.landmarks = []
         self.angles = {}
         self.image = None
+        self.lock = Lock()
+    
+    def switch_video_source(self, video):
+        with self.lock:
+            self.video.release()
+            self.video = cv2.VideoCapture(video)
     
     def __del__(self):
         self.video.release()
@@ -121,40 +130,45 @@ class VideoCamera(object):
         return angle_dict
     
     def get_frame(self):
-        ret, frame = self.video.read() 
+        with self.lock:
+            ret, frame = self.video.read() 
+            if not ret or frame is None:
+                print("Frame not read — video likely ended.")
+                # self.video.release()  # Release video to avoid broken state
+                self.switch_video_source(0)
+                return None
+            # Recolour to RGB 
+            self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.image.flags.writeable = False 
+            
+            # Make Detection
+            results = self.pose.process(self.image)
 
-        # Recolour to RGB 
-        self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        self.image.flags.writeable = False 
-        
-        # Make Detection
-        results = self.pose.process(self.image)
+            # BGR for open cv 
+            self.image.flags.writeable = True 
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
 
-        # BGR for open cv 
-        self.image.flags.writeable = True 
-        self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+            try: 
+                self.landmarks = results.pose_landmarks.landmark
 
-        try: 
-            self.landmarks = results.pose_landmarks.landmark
+                skill = self.detect_skill()
+                self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
+                # cv2.putText(self.image, "handstand", (400, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+            except:
+                pass
+            
+            # Render detections 
+            self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
 
-            skill = self.detect_skill()
-            self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
-            # cv2.putText(self.image, "handstand", (400, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        except:
-            pass
-        
-        # Render detections 
-        self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+            # cv2.imshow('Mediapipe Feed', image)
 
-        # cv2.imshow('Mediapipe Feed', image)
+            #Encode the frame to JPEG
+            ret, buffer = cv2.imencode('.jpg', self.image)
+            image_bytes = buffer.tobytes()
 
-        #Encode the frame to JPEG
-        ret, buffer = cv2.imencode('.jpg', self.image)
-        image_bytes = buffer.tobytes()
+            return image_bytes
 
-        return image_bytes
-
-        # if cv2.waitKey(10) & 0xFF == ord('q'):
-        #     break
+            # if cv2.waitKey(10) & 0xFF == ord('q'):
+            #     break
 
 
