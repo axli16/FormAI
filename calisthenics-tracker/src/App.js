@@ -96,7 +96,7 @@ const VideoDisplay = ({ src, isRecording, hasRecordedVideo, isPlaying, onPlayTog
       )}
 
       {/* Video Controls Overlay */}
-      {hasRecordedVideo && (
+      {/* {hasRecordedVideo && (
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={onPlayToggle}
@@ -105,7 +105,7 @@ const VideoDisplay = ({ src, isRecording, hasRecordedVideo, isPlaying, onPlayTog
             {isPlaying ? <Pause size={32} /> : <Play size={32} />}
           </button>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
@@ -189,10 +189,14 @@ export default function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecordedVideo, setHasRecordedVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoKey, setVideoKey] = useState(Date.now());
 
   // Skill info state - connect these to your backend
-  const [feedback, setFeedback] = useState({ skill: "", grade: "80", tips: [] });
+  const [feedback, setFeedback] = useState({ skill: "", grade: "0", tips: [] });
 
+  useEffect(() => {
+    handleReset();
+  }, []); 
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -245,10 +249,18 @@ export default function App() {
     // TODO: Integrate with your backend playback logic
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setHasRecordedVideo(false);
     setIsPlaying(false);
-    // TODO: Integrate with your backend reset logic
+    await fetch("http://localhost:5000/reset", {
+      method: "POST",
+    })
+      .then(res => res.text())
+      .then(msg => {
+        console.log("Reset success:", msg);
+        setVideoKey(Date.now());
+      })
+      .catch(err => console.error("Reset failed:", err));
   };
 
   return (
@@ -260,7 +272,7 @@ export default function App() {
             {/* Left Side - Video Display (80% width) */}  
             <div className="flex-1 lg:w-4/5 flex flex-col justify-center">
               <VideoDisplay 
-                src = {`http://localhost:5000/video_feed?${Date.now()}`}
+                src = {`http://localhost:5000/video_feed?${videoKey}`}
                 isRecording={isRecording}
                 hasRecordedVideo={hasRecordedVideo}
                 isPlaying={isPlaying}

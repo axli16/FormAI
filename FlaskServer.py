@@ -16,6 +16,7 @@ streaming = True
 
 def generate_frames():
     while True:
+        
         frame = feed.get_frame()
         if frame is None:
             continue 
@@ -64,7 +65,7 @@ def upload_video():
     streaming = False
     return "Upload successful", 200
 
-@app.route('/reset')
+@app.route('/reset', methods=['POST'])
 def reset_live():
     streaming = True
     feed.switch_video_source(0)

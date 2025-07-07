@@ -2,6 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from threading import Lock
+from moviepy import VideoFileClip
 
 import joint
 from constants import skills, positions
@@ -9,6 +10,7 @@ from constants import skills, positions
 
 class VideoCamera(object):
     def __init__(self, video_source= 0):
+        self.source = 0
         self.video = cv2.VideoCapture(video_source)
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
@@ -22,6 +24,11 @@ class VideoCamera(object):
         with self.lock:
             self.video.release()
             self.video = cv2.VideoCapture(video)
+            self.source = video
+    
+    def get_rotation(self, filepath):
+        clip = VideoFileClip(filepath)
+        return clip.rotation
     
     def __del__(self):
         self.video.release()
@@ -131,12 +138,23 @@ class VideoCamera(object):
     
     def get_frame(self):
         with self.lock:
+            rotation = 0
+            
             ret, frame = self.video.read() 
             if not ret or frame is None:
                 print("Frame not read — video likely ended.")
                 # self.video.release()  # Release video to avoid broken state
                 self.switch_video_source(0)
                 return None
+            if self.source != 0:
+                rotation = self.get_rotation(self.source)
+                if rotation == 90:
+                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                elif rotation == 180:
+                    frame = cv2.rotate(frame, cv2.ROTATE_180)
+                elif rotation == 270:
+                    frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
             # Recolour to RGB 
             self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self.image.flags.writeable = False 
