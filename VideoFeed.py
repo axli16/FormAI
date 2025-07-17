@@ -3,9 +3,13 @@ import mediapipe as mp
 import numpy as np
 from threading import Lock
 from moviepy import VideoFileClip
+import boto3
+import uuid
 
 import joint
 from constants import skills, positions
+
+BUCKET = 'calivideo'
 
 
 class VideoCamera(object):
@@ -19,6 +23,7 @@ class VideoCamera(object):
         self.angles = {}
         self.image = None
         self.lock = Lock()
+        self.s3 = boto3.client('s3')
     
     def switch_video_source(self, video):
         with self.lock:
@@ -136,57 +141,60 @@ class VideoCamera(object):
 
         return angle_dict
     
-    def get_frame(self):
+    def process(self, skill):
         with self.lock:
-            rotation = 0
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            output_path =  self.source.replace('.mp4', '_processed.mp4')
+            out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(self.video.get(3)), int(self.video.get(4))))
+            while self.video.isOpened():
+                rotation = 0
+                
+                ret, frame = self.video.read() 
+                # if not ret or frame is None:
+                #     print("Frame not read — video likely ended.")
+                #     # self.video.release()  # Release video to avoid broken state
+                #     self.switch_video_source(0)
+                #     return None
+                if self.source != 0:
+                    rotation = self.get_rotation(self.source)
+                    if rotation == 90:
+                        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                    elif rotation == 180:
+                        frame = cv2.rotate(frame, cv2.ROTATE_180)
+                    elif rotation == 270:
+                        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+                # Recolour to RGB 
+                self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.image.flags.writeable = False 
+                
+                # Make Detection
+                results = self.pose.process(self.image)
+
+                # BGR for open cv 
+                self.image.flags.writeable = True 
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+
+                try: 
+                    self.landmarks = results.pose_landmarks.landmark
+
+                    # skill = self.detect_skill()
+                    self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
+                except:
+                    pass
+                
+                # Render detections 
+                self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+                out.write(frame)
             
-            ret, frame = self.video.read() 
-            if not ret or frame is None:
-                print("Frame not read — video likely ended.")
-                # self.video.release()  # Release video to avoid broken state
-                self.switch_video_source(0)
-                return None
-            if self.source != 0:
-                rotation = self.get_rotation(self.source)
-                if rotation == 90:
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-                elif rotation == 180:
-                    frame = cv2.rotate(frame, cv2.ROTATE_180)
-                elif rotation == 270:
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-
-            # Recolour to RGB 
-            self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.image.flags.writeable = False 
+            self.video.release()
+            out.release()
             
-            # Make Detection
-            results = self.pose.process(self.image)
 
-            # BGR for open cv 
-            self.image.flags.writeable = True 
-            self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+            s3_key = f"uploads/{uuid.uuid4()}_{self.source}"
 
-            try: 
-                self.landmarks = results.pose_landmarks.landmark
+            self.s3.upload_file(output_path, BUCKET, s3_key)
 
-                skill = self.detect_skill()
-                self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
-                # cv2.putText(self.image, "handstand", (400, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-            except:
-                pass
-            
-            # Render detections 
-            self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
-
-            # cv2.imshow('Mediapipe Feed', image)
-
-            #Encode the frame to JPEG
-            ret, buffer = cv2.imencode('.jpg', self.image)
-            image_bytes = buffer.tobytes()
-
-            return image_bytes
-
-            # if cv2.waitKey(10) & 0xFF == ord('q'):
-            #     break
-
+            url = f"https://{BUCKET}.s3.amazonaws.com/{s3_key}"
+            return url
 

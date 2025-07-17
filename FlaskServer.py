@@ -1,10 +1,9 @@
 from flask import Flask, Response, jsonify, request
 import os
 from flask_cors import CORS
-import tempfile
+from werkzeug.utils import secure_filename
 
 import VideoFeed
-
 
 
 app = Flask(__name__)
@@ -14,15 +13,15 @@ feed = VideoFeed.VideoCamera()
 feedback = {"skill": "", "grade": "", "tips":[]}
 streaming = True
 
-def generate_frames():
-    while True:
+# def generate_frames():
+#     while True:
         
-        frame = feed.get_frame()
-        if frame is None:
-            continue 
+#         frame = feed.get_frame()
+#         if frame is None:
+#             continue 
 
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+#         yield (b'--frame\r\n'
+#                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
 @app.route('/feedback')        
 def getfeedback():
@@ -48,33 +47,30 @@ def update_feedback():
     feedback["grade"] = accuracy
     feedback["tips"] = tips
 
+
+
 @app.route('/upload', methods=['POST'])
 def upload_video():
-    global video_file 
 
     if 'video' not in request.files:
         return "Np video file", 400
-    
+
     file = request.files['video']
-    tmp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-    file.save(tmp_file.name)
+    filename = secure_filename(file.filename)
 
-    video_file = tmp_file.name
+    feed.switch_video_source(file)
+    feed.process()
 
-    feed.switch_video_source(video_file)
-    streaming = False
-    return "Upload successful", 200
+# @app.route('/reset', methods=['POST'])
+# def reset_live():
+#     streaming = True
+#     feed.switch_video_source(0)
+#     return "Live Feed Reset", 200
 
-@app.route('/reset', methods=['POST'])
-def reset_live():
-    streaming = True
-    feed.switch_video_source(0)
-    return "Live Feed Reset", 200
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+# @app.route('/video_feed')
+# def video_feed():
+#     return Response(generate_frames(),
+#                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
