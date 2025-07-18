@@ -190,6 +190,7 @@ export default function App() {
   const [hasRecordedVideo, setHasRecordedVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoKey, setVideoKey] = useState(Date.now());
+  const [skill, setSkill] = useState("Handstand");
 
   // Skill info state - connect these to your backend
   const [feedback, setFeedback] = useState({ skill: "", grade: "0", tips: [] });
@@ -198,15 +199,15 @@ export default function App() {
     handleReset();
   }, []); 
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetch("http://localhost:5000/feedback")
-        .then(res => res.json())
-        .then(data => setFeedback(data));
-    }, 500); // every 0.5s
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     fetch("http://localhost:5000/feedback")
+  //       .then(res => res.json())
+  //       .then(data => setFeedback(data));
+  //   }, 500); // every 0.5s
 
-    return () => clearInterval(interval);
-  }, []);
+  //   return () => clearInterval(interval);
+  // }, []);
 
   // Handler functions - connect these to your backend
   const handleRecordToggle = () => {
@@ -231,6 +232,7 @@ export default function App() {
 
     const formData = new FormData(); 
     formData.append('video', e.target.files[0]);
+    formData.append('skill', skill);
 
     await fetch("http://localhost:5000/upload", {
       method: "POST",

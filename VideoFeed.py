@@ -142,59 +142,59 @@ class VideoCamera(object):
         return angle_dict
     
     def process(self, skill):
-        with self.lock:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            output_path =  self.source.replace('.mp4', '_processed.mp4')
-            out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(self.video.get(3)), int(self.video.get(4))))
-            while self.video.isOpened():
-                rotation = 0
-                
-                ret, frame = self.video.read() 
-                # if not ret or frame is None:
-                #     print("Frame not read — video likely ended.")
-                #     # self.video.release()  # Release video to avoid broken state
-                #     self.switch_video_source(0)
-                #     return None
-                if self.source != 0:
-                    rotation = self.get_rotation(self.source)
-                    if rotation == 90:
-                        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-                    elif rotation == 180:
-                        frame = cv2.rotate(frame, cv2.ROTATE_180)
-                    elif rotation == 270:
-                        frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-
-                # Recolour to RGB 
-                self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                self.image.flags.writeable = False 
-                
-                # Make Detection
-                results = self.pose.process(self.image)
-
-                # BGR for open cv 
-                self.image.flags.writeable = True 
-                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
-
-                try: 
-                    self.landmarks = results.pose_landmarks.landmark
-
-                    # skill = self.detect_skill()
-                    self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
-                except:
-                    pass
-                
-                # Render detections 
-                self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
-                out.write(frame)
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        output_path =  self.source.replace('.mp4', '_processed.mp4')
+        out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(self.video.get(3)), int(self.video.get(4))))
+        print(self.video.isOpened())
+        while self.video.isOpened():
+            rotation = 0
             
-            self.video.release()
-            out.release()
+            ret, frame = self.video.read() 
+            # if not ret or frame is None:
+            #     print("Frame not read — video likely ended.")
+            #     # self.video.release()  # Release video to avoid broken state
+            #     self.switch_video_source(0)
+            #     return None
+            if self.source != 0:
+                rotation = self.get_rotation(self.source)
+                if rotation == 90:
+                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+                elif rotation == 180:
+                    frame = cv2.rotate(frame, cv2.ROTATE_180)
+                elif rotation == 270:
+                    frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+            # Recolour to RGB 
+            self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            self.image.flags.writeable = False 
             
+            # Make Detection
+            results = self.pose.process(self.image)
 
-            s3_key = f"uploads/{uuid.uuid4()}_{self.source}"
+            # BGR for open cv 
+            self.image.flags.writeable = True 
+            self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
 
-            self.s3.upload_file(output_path, BUCKET, s3_key)
+            try: 
+                self.landmarks = results.pose_landmarks.landmark
 
-            url = f"https://{BUCKET}.s3.amazonaws.com/{s3_key}"
-            return url
+                # skill = self.detect_skill()
+                self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
+            except:
+                pass
+            
+            # Render detections 
+            self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+            out.write(frame)
+        
+        self.video.release()
+        out.release()
+        
+
+        s3_key = f"processed/{uuid.uuid4()}_{self.source}"
+
+        self.s3.upload_file(output_path, BUCKET, s3_key)
+
+        url = f"https://{BUCKET}.s3.us-east-2.amazonaws.com/{s3_key}"
+        return [url, s3_key]
 
