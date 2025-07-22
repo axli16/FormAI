@@ -5,6 +5,7 @@ from threading import Lock
 from moviepy import VideoFileClip
 import boto3
 import uuid
+import time
 
 import joint
 from constants import skills, positions
@@ -18,8 +19,8 @@ class VideoCamera(object):
         self.video = cv2.VideoCapture(video_source)
         self.mp_drawing = mp.solutions.drawing_utils
         self.mp_pose = mp.solutions.pose
-        self.pose = self.mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
-        self.landmarks = []
+        self.pose = self.mp_pose.Pose(model_complexity = 0, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        self.landmarks = None
         self.angles = {}
         self.image = None
         self.lock = Lock()
@@ -79,7 +80,7 @@ class VideoCamera(object):
         wristL =  [landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.LEFT_WRIST.value].y]
 
         left_arm_angle = joint.calculate_angle(shoulderL, elbowL, wristL)
-        self.renderAngle(elbowL, left_arm_angle)
+        # self.renderAngle(elbowL, left_arm_angle)
         angle_dict[positions.ARM_ANGLE_LEFT] = left_arm_angle
         
         # Right arm straight
@@ -88,7 +89,7 @@ class VideoCamera(object):
         wristR =  [landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_WRIST.value].y]
 
         right_arm_angle = joint.calculate_angle(shoulderR, elbowR, wristR)
-        self.renderAngle( elbowR, right_arm_angle)
+        # self.renderAngle( elbowR, right_arm_angle)
         angle_dict[positions.ARM_ANGLE_RIGHT] = right_arm_angle
 
         # Left Leg straight
@@ -97,7 +98,7 @@ class VideoCamera(object):
         ankleL =  [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
 
         left_leg_angle = joint.calculate_angle(hipL, kneeL, ankleL)
-        self.renderAngle( kneeL, left_leg_angle)
+        # self.renderAngle( kneeL, left_leg_angle)
         angle_dict[positions.LEG_ANGLE_LEFT] = left_leg_angle
         
         # Right leg straight
@@ -106,15 +107,15 @@ class VideoCamera(object):
         ankleR =  [landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].x, landmarks[mp_pose.PoseLandmark.RIGHT_ANKLE.value].y]
 
         right_leg_angle = joint.calculate_angle(hipR, kneeR, ankleR)
-        self.renderAngle(kneeR, right_leg_angle)
+        # self.renderAngle(kneeR, right_leg_angle)
         angle_dict[positions.LEG_ANGLE_RIGHT] = right_leg_angle
 
         if skill == skills.HANDSTAND:
             # Stack 
             stack_angle_left = joint.calculate_angle(wristL, shoulderL, hipL)
             stack_angle_right = joint.calculate_angle(wristR, shoulderR, hipR)
-            self.renderAngle(shoulderL, stack_angle_left)
-            self.renderAngle(shoulderR, stack_angle_right)
+            # self.renderAngle(shoulderL, stack_angle_left)
+            # self.renderAngle(shoulderR, stack_angle_right)
             angle_dict[positions.STACK_ANGLE_LEFT] = stack_angle_left
             angle_dict[positions.STACK_ANGLE_RIGHT] = stack_angle_right
 
@@ -122,8 +123,8 @@ class VideoCamera(object):
             # Hand position over hips around 90 degrees
             left_hand_position_front_lever = joint.calculate_angle(wristL, hipL, shoulderL)
             right_hand_position_front_lever = joint.calculate_angle(wristR, hipR, shoulderR)
-            self.renderAngle(hipL, left_hand_position_front_lever)
-            self.renderAngle(hipR, right_hand_position_front_lever)
+            # self.renderAngle(hipL, left_hand_position_front_lever)
+            # self.renderAngle(hipR, right_hand_position_front_lever)
             angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] = left_hand_position_front_lever
             angle_dict[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] = right_hand_position_front_lever
 
@@ -142,59 +143,73 @@ class VideoCamera(object):
         return angle_dict
     
     def process(self, skill):
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        output_path =  self.source.replace('.mp4', '_processed.mp4')
-        out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(self.video.get(3)), int(self.video.get(4))))
-        print(self.video.isOpened())
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # output_path =  self.source.replace('.mp4', '_processed.mp4')
+        # out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(self.video.get(3)), int(self.video.get(4))))
+        frame_index = 0
+        
+        rotation = 0
+        if self.source != 0: 
+            rotation = self.get_rotation(self.source)
+        start = time.time()
         while self.video.isOpened():
-            rotation = 0
+            if frame_index % 100 == 0:
+                print(f"Processed {frame_index} frames...")
+            frame_index+=1
+
+
             
             ret, frame = self.video.read() 
-            # if not ret or frame is None:
-            #     print("Frame not read — video likely ended.")
-            #     # self.video.release()  # Release video to avoid broken state
-            #     self.switch_video_source(0)
-            #     return None
-            if self.source != 0:
-                rotation = self.get_rotation(self.source)
+            if frame_index % 5 == 0:
+                if not ret:
+                    break
+                
                 if rotation == 90:
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                 elif rotation == 180:
                     frame = cv2.rotate(frame, cv2.ROTATE_180)
                 elif rotation == 270:
                     frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                
 
-            # Recolour to RGB 
-            self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            self.image.flags.writeable = False 
-            
-            # Make Detection
-            results = self.pose.process(self.image)
 
-            # BGR for open cv 
-            self.image.flags.writeable = True 
-            self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+                # Recolour to RGB 
+                self.image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.image.flags.writeable = False 
+                
+                # Make Detection
+                results = self.pose.process(self.image)
 
-            try: 
-                self.landmarks = results.pose_landmarks.landmark
+                # BGR for open cv 
+                self.image.flags.writeable = True 
+                self.image = cv2.cvtColor(self.image, cv2.COLOR_RGB2BGR)
+                
+                try: 
+                    self.landmarks = results.pose_landmarks.landmark
 
-                # skill = self.detect_skill()
-                self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
-            except:
-                pass
+                    # skill = self.detect_skill()
+                    
+                    self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
+                    
+                except:
+                    pass
             
             # Render detections 
-            self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
-            out.write(frame)
-        
+            # self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+            
+            # out.write(self.image)
+                
+            
+        print(f"Processed video took {time.time() - start:.3f}s")
         self.video.release()
-        out.release()
+        # out.release()
         
 
-        s3_key = f"processed/{uuid.uuid4()}_{self.source}"
+        # s3_key = f"processed/{uuid.uuid4()}_{self.source}"
 
-        self.s3.upload_file(output_path, BUCKET, s3_key)
+        # self.s3.upload_file(output_path, BUCKET, s3_key)
 
-        url = f"https://{BUCKET}.s3.us-east-2.amazonaws.com/{s3_key}"
-        return [url, s3_key]
+        # url = f"https://{BUCKET}.s3.us-east-2.amazonaws.com/{s3_key}"
+        # return [url, s3_key]
+        
 

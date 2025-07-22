@@ -54,11 +54,13 @@ def upload_video():
 
     filename = secure_filename(file.filename)
 
-    local_path = os.path.join('./uploads', filename)
+    local_path = os.path.join('uploads', filename)
     file.save(local_path)
 
     feed.switch_video_source(local_path)
     url = feed.process(skill)
+
+    print(feed.feed_back(skill))
     os.remove(local_path)
     return jsonify({"url": url})
 

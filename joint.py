@@ -43,19 +43,13 @@ def evaluateHandstand(angles):
     
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
-    else:
-        arm_correction = "Arms Good"
 
     if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
-        leg_correction = "Straighten legs"
-    else:
-        leg_correction = "Legs Good"
+        leg_correction = "Point toes, and squeeze legs "
 
     if angles[positions.STACK_ANGLE_LEFT] < 170 or angles[positions.STACK_ANGLE_RIGHT] < 170:
         # Wrist shoulder and hips are not stacked 
-        stack_correction = "Not stacked"
-    else:
-        stack_correction = "Good Stack"
+        stack_correction = "Push through palms, and use fingers to control"
     
     
     # Calulate score 
