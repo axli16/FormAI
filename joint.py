@@ -38,19 +38,22 @@ def evaluateHandstand(angles):
     arm_correction = "Good"
     leg_correction = "Good"
     stack_correction = "Good"
+    feedback = []
 
     # angles = getAngles(landmarks, skills.HANDSTAND, image)
     
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
-        arm_correction = "Arms too bent"
+        arm_correction = "Straighten arms, and push through shoulders"
+        feedback.append(arm_correction)
 
     if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
         leg_correction = "Point toes, and squeeze legs "
+        feedback.append(leg_correction)
 
     if angles[positions.STACK_ANGLE_LEFT] < 170 or angles[positions.STACK_ANGLE_RIGHT] < 170:
         # Wrist shoulder and hips are not stacked 
         stack_correction = "Push through palms, and use fingers to control"
-    
+        feedback.append(stack_correction)
     
     # Calulate score 
     angle_sum = {
@@ -64,7 +67,7 @@ def evaluateHandstand(angles):
 
     score = calculateScore(angle_sum)
     percentage = str(score) + "%"
-
+    feedback.append(percentage)
 
     # Render tips and score 
     # cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
@@ -72,46 +75,40 @@ def evaluateHandstand(angles):
     # cv2.putText(image, stack_correction, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
     # cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
-    return [arm_correction, leg_correction, stack_correction, percentage]
+    return feedback
 
 #score the front lever 
 def evaluateFrontLever( angles):
-    arm_correction = "Good"
-    leg_correction = "Good"
-    wrist_position = "Good"
-    arm_angle = "Good"
-    flat_body = "Good"
-
+    # arm_correction = "Good"
+    # leg_correction = "Good"
+    # wrist_position = "Good"
+    # arm_angle = "Good"
+    # flat_body = "Good"
+    feedback = []
 
     # angles = getAngles(landmarks, skills.FRONTLEVER, image)
 
 
     if  angles[positions.ARM_ANGLE_LEFT] < 170.0  or angles[positions.ARM_ANGLE_RIGHT] < 170.0 :
         arm_correction = "Arms too bent"
-    else:
-        arm_correction = "Arms Good"
+        feedback.append(arm_correction)
+
 
     if angles[positions.LEG_ANGLE_LEFT] < 170.0 or angles[positions.LEG_ANGLE_RIGHT] < 170.0:
-        leg_correction = "Straighten legs"
-    else:
-        leg_correction = "Legs Good"
+        leg_correction = "Straighten legs, squeeze your butt"
+        feedback.append(leg_correction)
 
     if 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_LEFT] < 100 or 60 < angles[positions.NINTY_DEGREE_HAND_TO_HIP_RIGHT] < 100:
-        # 
         wrist_position = "Good, hands over hips"
     else:
-        wrist_position = "Hands not over hips"
+        wrist_position = ""
     
     #TODO:gotta figure how this check works or if needed 
     if angles[positions.ARMPIT_ANGLE_LEFT] > 45.0 or angles[positions.ARMPIT_ANGLE_RIGHT] > 45.0:
         arm_angle = "arms to raised"
-    else:
-        arm_angle = "Arm Angle Good"
 
     if angles[positions.FLAT_BODY_LEFT] < 170.0 or angles[positions.FLAT_BODY_RIGHT] < 170.0:
         flat_body = "Body not flat"
-    else:
-        flat_body = "Good flat body"
     
     #calculate score
     angle_sum = {
@@ -125,6 +122,7 @@ def evaluateFrontLever( angles):
 
     score = calculateScore(angle_sum)
     percentage = str(score) + "%"
+    feedback.append(percentage)
 
     # Render tips and score 
     # cv2.putText(image, arm_correction, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
@@ -132,7 +130,7 @@ def evaluateFrontLever( angles):
     # cv2.putText(image, wrist_position, (50, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
     # cv2.putText(image, percentage, (50, 200), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA )
 
-    return [arm_correction, leg_correction, wrist_position, percentage]
+    return feedback
 
 
 #Score the planche

@@ -55,24 +55,29 @@ def upload_video():
     filename = secure_filename(file.filename)
 
     local_path = os.path.join('uploads', filename)
+    s3_key = f"processed/{uuid.uuid4()}_{filename}"
+
+    s3.upload_file(local_path, BUCKET, s3_key)
+
     file.save(local_path)
 
     feed.switch_video_source(local_path)
-    url = feed.process(skill)
+    feed.process(skill)
 
     print(feed.feed_back(skill))
-    os.remove(local_path)
-    return jsonify({"url": url})
+    
+    return jsonify({"url": s3_key})
 
 
-# @app.rout('/reset', methods=['POST'])
-# def reset():
-#     url = request.form['url']
-#     parsed = urlparse(url)
-#     key = parsed.path.lstrip('/') 
+@app.rout('/reset', methods=['POST'])
+def reset():
+    # url = request.form['url']
+    # parsed = urlparse(url)
+    # key = parsed.path.lstrip('/') 
 
-#     feed.delete(key)
-#     return jsonify({"Reset":"Success"})
+    # feed.delete(key)
+    os.remove("./uploads")
+    return jsonify({"Reset":"Success"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
