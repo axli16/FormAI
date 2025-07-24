@@ -78,7 +78,7 @@ def evaluateHandstand(angles):
     return feedback
 
 #score the front lever 
-def evaluateFrontLever( angles):
+def evaluateFrontLever(angles):
     # arm_correction = "Good"
     # leg_correction = "Good"
     # wrist_position = "Good"

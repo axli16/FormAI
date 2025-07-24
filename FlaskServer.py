@@ -55,11 +55,11 @@ def upload_video():
     filename = secure_filename(file.filename)
 
     local_path = os.path.join('uploads', filename)
+    file.save(local_path)
     s3_key = f"processed/{uuid.uuid4()}_{filename}"
 
     s3.upload_file(local_path, BUCKET, s3_key)
 
-    file.save(local_path)
 
     feed.switch_video_source(local_path)
     feed.process(skill)
@@ -69,7 +69,7 @@ def upload_video():
     return jsonify({"url": s3_key})
 
 
-@app.rout('/reset', methods=['POST'])
+@app.route('/reset', methods=['POST'])
 def reset():
     # url = request.form['url']
     # parsed = urlparse(url)

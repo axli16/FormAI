@@ -146,6 +146,8 @@ class VideoCamera(object):
         # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         # output_path =  self.source.replace('.mp4', '_processed.mp4')
         # out = cv2.VideoWriter(output_path, fourcc, 30.0, (int(self.video.get(3)), int(self.video.get(4))))
+        avg_angle = None
+
         frame_index = 0
         
         rotation = 0
@@ -191,6 +193,8 @@ class VideoCamera(object):
                     
                     self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
                     
+                    for key, values in self.angles.items():
+                        avg_angle[key] += values
                 except:
                     pass
             
@@ -202,6 +206,15 @@ class VideoCamera(object):
             
         print(f"Processed video took {time.time() - start:.3f}s")
         self.video.release()
+
+        if skill == "handstand":
+            return joint.evaluateHandstand(avg_angle)
+        elif skill == "front lever":
+            return joint.evaluateFrontLever(avg_angle)
+        elif skill == "planche":
+            return joint.evaluatePlanche(avg_angle)
+
+        return []
         # out.release()
         
 
