@@ -137,20 +137,35 @@ class VideoCamera(object):
         try: 
             self.landmarks = results.pose_landmarks.landmark
 
-            skill = self.detect_skill()
-            self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
-            # cv2.putText(self.image, "handstand", (400, 400), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
-        except:
-            pass
+                    # skill = self.detect_skill()
+                    
+                    self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
+
+                    for key, values in self.angles.items():
+                        avg_angle[key] += values
+                except:
+                    pass
+            
+            # Render detections 
+            # self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
+            
+            # out.write(self.image)
+                
+            
+        print(f"Processed video took {time.time() - start:.3f}s")
+        self.video.release()
+
+
+        for key, values in avg_angle.items():
+            avg_angle[key]= values/ (frame_index/5)
+
         
-        # Render detections 
-        self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
-
-        # cv2.imshow('Mediapipe Feed', image)
-
-        #Encode the frame to JPEG
-        ret, buffer = cv2.imencode('.jpg', self.image)
-        image_bytes = buffer.tobytes()
+        if skill == "handstand":
+            return joint.evaluateHandstand(avg_angle)
+        elif skill == "front lever":
+            return joint.evaluateFrontLever(avg_angle)
+        elif skill == "planche":
+            return joint.evaluatePlanche(avg_angle)
 
         return image_bytes
 
