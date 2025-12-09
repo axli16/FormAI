@@ -137,21 +137,14 @@ class VideoCamera(object):
         try: 
             self.landmarks = results.pose_landmarks.landmark
 
-                    # skill = self.detect_skill()
-                    
-                    self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
+            # skill = self.detect_skill()
+            
+            self.angles = self.getAngles(self.landmarks, skill, self.mp_pose)
 
-                    for key, values in self.angles.items():
-                        avg_angle[key] += values
-                except:
-                    pass
-            
-            # Render detections 
-            # self.mp_drawing.draw_landmarks(self.image, results.pose_landmarks, self.mp_pose.POSE_CONNECTIONS)
-            
-            # out.write(self.image)
-                
-            
+            for key, values in self.angles.items():
+                avg_angle[key] += values
+        except:
+            pass
         print(f"Processed video took {time.time() - start:.3f}s")
         self.video.release()
 
