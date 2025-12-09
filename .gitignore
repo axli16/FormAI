@@ -1,0 +1,7 @@
+.env
+*.properties
+*.txt
+*.pyc
+*.pyo
+*.pyd
+

@@ -137,7 +137,7 @@ const ControlButtons = ({
     <footer className="bg-black/30 backdrop-blur-sm border-t border-red-500/20 p-6">
       <div className="max-w-6xl mx-auto flex justify-center gap-6">
         {/* Record Button */}
-        <button
+        {/* <button
           onClick={onRecordToggle}
           disabled={hasRecordedVideo}
           className={`flex items-center gap-3 px-8 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -148,16 +148,16 @@ const ControlButtons = ({
         >
           {isRecording ? <VideoOff size={24} /> : <Video size={24} />}
           {isRecording ? 'Stop Recording' : 'Start Recording'}
-        </button>
+        </button> */}
 
         {/* Upload Button */}
-        <button
+        {/* <button
           onClick={onUpload}
           className="flex items-center gap-3 px-8 py-4 bg-white hover:bg-gray-100 text-gray-900 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
         >
           <Upload size={24} />
           Upload Video
-        </button>
+        </button> */}
 
         {/* Reset Button */}
         {hasRecordedVideo && (
