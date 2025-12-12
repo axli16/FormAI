@@ -1,4 +1,4 @@
-from flask import Flask, Response, jsonify
+from flask import Flask, Response, jsonify, request
 import os
 from flask_cors import CORS
 from confluent_kafka import Producer
@@ -59,7 +59,8 @@ if kafka_config:
         feedback_consumer = None
 
 # Store AI-generated feedback
-ai_feedback = {"skill": "", "grade": "", "tips": [], "source": "rule-based"}
+user_selected_skill = "handstand"  # Default
+ai_feedback = {"skill": user_selected_skill, "grade": "", "tips": [], "source": "rule-based"}
 
 def poll_ai_feedback():
     """Poll for AI-generated feedback from Kafka (non-blocking)"""
@@ -136,15 +137,15 @@ def stream_landmarks_to_kafka():
                     "visibility": round(lm.visibility, 4)
                 })
         
-        # Get current skill
-        skill_detected = feed.detect_skill()
-        skill_name_map = {
-            1: "handstand",
-            2: "front_lever",
-            3: "90_hold",
-            4: "planche"
-        }
-        skill_name = skill_name_map.get(skill_detected, "unknown")
+        # Use user-selected skill instead of auto-detection
+        skill_name = user_selected_skill
+        
+        # Convert angles dict (enum keys to strings for JSON serialization)
+        angles_serializable = {}
+        for key, value in feed.angles.items():
+            # Convert enum to string name
+            key_name = key.name if hasattr(key, 'name') else str(key)
+            angles_serializable[key_name] = value
         
         # Create message payload
         message = {
@@ -152,7 +153,7 @@ def stream_landmarks_to_kafka():
             "timestamp": int(time.time() * 1000),
             "exercise": skill_name,
             "landmarks": landmark_data,
-            "angles": feed.angles  # Include calculated angles
+            "angles": angles_serializable  # Now JSON-serializable
         }
         
         # Send to Kafka
@@ -191,6 +192,23 @@ def getfeedback():
             "source": "rule-based"
         })
 
+# Store user-selected skill
+
+
+@app.route('/set-skill', methods=['POST'])
+def set_skill():
+    """Receive skill selection from frontend"""
+    global user_selected_skill
+    try:
+        data = request.json
+        skill = data.get('skill', 'handstand')
+        user_selected_skill = skill
+        print(f"✅ Skill set to: {skill}")
+        return jsonify({"status": "success", "skill": skill})
+    except Exception as e:
+        print(f"Error setting skill: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 def update_feedback():
     global feedback
     skill_detected = feed.detect_skill()
@@ -202,7 +220,7 @@ def update_feedback():
     for i in range(0, len(skill_feedback) - 2):
         tips.append(skill_feedback[i])
     
-    feedback["skill"] = skill_name
+    feedback["skill"] = user_selected_skill
     feedback["grade"] = accuracy
     feedback["tips"] = tips
 

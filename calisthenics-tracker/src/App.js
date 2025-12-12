@@ -36,7 +36,7 @@ const SkillInfoSidebar = ({ skillName, feedback, score }) => {
             <div className="text-center">
               <div className="text-3xl font-bold text-white mb-2">{score}</div>
               <div className="w-full bg-gray-700 rounded-full h-2">
-                <div 
+                <div
                   className="bg-gradient-to-r from-red-500 to-red-400 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${score}` }}
                 ></div>
@@ -78,7 +78,7 @@ const VideoDisplay = ({ src, isRecording, hasRecordedVideo, isPlaying, onPlayTog
         alt="Live Feed"
         className="w-full aspect-video object-cover bg-gray-800"
       />
-      
+
       {/* Recording Indicator */}
       {isRecording && (
         <div className="absolute top-4 right-4 flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -125,50 +125,60 @@ const StatusText = ({ hasRecordedVideo, isRecording }) => {
   );
 };
 
-// Control Buttons Component
-const ControlButtons = ({ 
-  isRecording, 
-  hasRecordedVideo, 
-  onRecordToggle, 
-  onUpload, 
-  onReset 
+// Control Buttons Component with Skill Selector
+const ControlButtons = ({
+  isRecording,
+  hasRecordedVideo,
+  onRecordToggle,
+  onUpload,
+  onReset,
+  selectedSkill,
+  onSkillChange
 }) => {
+  const skills = [
+    { value: 'handstand', label: 'Handstand' },
+    { value: 'front_lever', label: 'Front Lever' },
+    { value: 'planche', label: 'Planche' },
+    { value: '90_hold', label: '90 Hold' },
+    { value: 'vertical_jump', label: 'Vertical Jump' }
+  ];
+
   return (
     <footer className="bg-black/30 backdrop-blur-sm border-t border-red-500/20 p-6">
-      <div className="max-w-6xl mx-auto flex justify-center gap-6">
-        {/* Record Button */}
-        {/* <button
-          onClick={onRecordToggle}
-          disabled={hasRecordedVideo}
-          className={`flex items-center gap-3 px-8 py-4 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-            isRecording 
-              ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-500/30' 
-              : 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30'
-          }`}
-        >
-          {isRecording ? <VideoOff size={24} /> : <Video size={24} />}
-          {isRecording ? 'Stop Recording' : 'Start Recording'}
-        </button> */}
+      <div className="max-w-6xl mx-auto">
+        {/* Skill Selector */}
+        <div className="flex justify-center mb-6">
+          <div className="w-full max-w-md">
+            <label className="block text-white text-sm font-semibold mb-2 text-center">
+              Select Exercise
+            </label>
+            <select
+              value={selectedSkill}
+              onChange={(e) => onSkillChange(e.target.value)}
+              className="w-full px-6 py-4 bg-gray-800 text-white rounded-xl border-2 border-red-500/30 focus:border-red-500 focus:outline-none font-semibold text-lg cursor-pointer hover:bg-gray-700 transition-all"
+            >
+              {skills.map((skill) => (
+                <option key={skill.value} value={skill.value}>
+                  {skill.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-        {/* Upload Button */}
-        {/* <button
-          onClick={onUpload}
-          className="flex items-center gap-3 px-8 py-4 bg-white hover:bg-gray-100 text-gray-900 rounded-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg"
-        >
-          <Upload size={24} />
-          Upload Video
-        </button> */}
-
-        {/* Reset Button */}
-        {hasRecordedVideo && (
-          <button
-            onClick={onReset}
-            className="flex items-center gap-3 px-6 py-4 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
-          >
-            <RotateCcw size={20} />
-            Back to Live
-          </button>
-        )}
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-6">
+          {/* Reset Button */}
+          {hasRecordedVideo && (
+            <button
+              onClick={onReset}
+              className="flex items-center gap-3 px-6 py-4 bg-gray-700 hover:bg-gray-600 text-white rounded-xl font-semibold transition-all duration-200 transform hover:scale-105"
+            >
+              <RotateCcw size={20} />
+              Back to Live
+            </button>
+          )}
+        </div>
       </div>
     </footer>
   );
@@ -176,45 +186,57 @@ const ControlButtons = ({
 
 // Main App Component
 export default function App() {
-  // UI State (you can manage this with your backend integration)
+  // UI State
   const [isRecording, setIsRecording] = useState(false);
   const [hasRecordedVideo, setHasRecordedVideo] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState('handstand');
 
-  // Skill info state - connect these to your backend
-  const [feedback, setFeedback] = useState({ skill: "", grade: "80", tips: [] });
+  // Skill info state
+  const [feedback, setFeedback] = useState({ skill: selectedSkill, grade: "80", tips: [] });
 
+  // Send selected skill to backend whenever it changes
+  useEffect(() => {
+    fetch("http://localhost:5000/set-skill", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ skill: selectedSkill })
+    }).catch(err => console.error("Failed to set skill:", err));
+  }, [selectedSkill]);
 
+  // Poll for feedback
   useEffect(() => {
     const interval = setInterval(() => {
       fetch("http://localhost:5000/feedback")
         .then(res => res.json())
         .then(data => setFeedback(data));
-    }, 500); // every 0.5s
+    }, 500);
 
     return () => clearInterval(interval);
   }, []);
 
-  // Handler functions - connect these to your backend
+  // Handler functions
   const handleRecordToggle = () => {
     setIsRecording(!isRecording);
-    // TODO: Integrate with your backend recording logic
   };
 
   const handleUpload = () => {
-    // TODO: Integrate with your backend upload logic
     console.log('Upload clicked');
   };
 
   const handlePlayToggle = () => {
     setIsPlaying(!isPlaying);
-    // TODO: Integrate with your backend playback logic
   };
 
   const handleReset = () => {
     setHasRecordedVideo(false);
     setIsPlaying(false);
-    // TODO: Integrate with your backend reset logic
+  };
+
+  const handleSkillChange = (skill) => {
+    setSelectedSkill(skill);
   };
 
   return (
@@ -223,24 +245,24 @@ export default function App() {
       <main className="flex-1 p-4">
         <div className="max-w-7xl mx-auto h-full">
           <div className="flex gap-4 h-full">
-            {/* Left Side - Video Display (80% width) */}  
+            {/* Left Side - Video Display (80% width) */}
             <div className="flex-1 lg:w-4/5 flex flex-col justify-center">
-              <VideoDisplay 
-                src = 'http://127.0.0.1:5000/video_feed'
+              <VideoDisplay
+                src='http://127.0.0.1:5000/video_feed'
                 isRecording={isRecording}
                 hasRecordedVideo={hasRecordedVideo}
                 isPlaying={isPlaying}
                 onPlayToggle={handlePlayToggle}
               />
-              
-              <StatusText 
+
+              <StatusText
                 hasRecordedVideo={hasRecordedVideo}
                 isRecording={isRecording}
               />
-              
+
               {/* Mobile Skill Info - Shows below video on small screens */}
               <div className="block lg:hidden mt-6">
-                <SkillInfoSidebar 
+                <SkillInfoSidebar
                   skillName={feedback.skill}
                   feedback={feedback.tips}
                   score={feedback.grade}
@@ -250,7 +272,7 @@ export default function App() {
 
             {/* Right Sidebar - Skill Info (20% width) */}
             <div className="w-1/5 min-w-[280px] hidden lg:block">
-              <SkillInfoSidebar 
+              <SkillInfoSidebar
                 skillName={feedback.skill}
                 feedback={feedback.tips}
                 score={feedback.grade}
@@ -260,12 +282,14 @@ export default function App() {
         </div>
       </main>
 
-      <ControlButtons 
+      <ControlButtons
         isRecording={isRecording}
         hasRecordedVideo={hasRecordedVideo}
         onRecordToggle={handleRecordToggle}
         onUpload={handleUpload}
         onReset={handleReset}
+        selectedSkill={selectedSkill}
+        onSkillChange={handleSkillChange}
       />
     </div>
   );

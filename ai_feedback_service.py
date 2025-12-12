@@ -186,6 +186,30 @@ TIPS:
 - [tip 1]
 - [tip 2]
 - [tip 3]
+""",
+            "vertical_jump": """
+You are an athletic performance coach analyzing a vertical jump. Here's the movement data over time:
+
+{summary}
+
+This data shows the athlete's body position throughout the jump sequence. Analyze:
+
+1. **Crouch Phase**: How deep did they crouch? (hip and knee angles)
+2. **Takeoff Power**: Did they explosively extend hips, knees, and ankles?
+3. **Arm Swing**: Did arms swing upward to generate momentum?
+4. **Peak Height**: Maximum vertical displacement of hips
+5. **Landing**: Controlled landing with proper knee flexion?
+
+Provide:
+1. A grade from 0-100 based on jump technique
+2. 2-3 specific tips to increase vertical jump height
+
+Respond in this exact format:
+GRADE: [number]
+TIPS:
+- [tip 1]
+- [tip 2]
+- [tip 3]
 """
         }
         
@@ -233,6 +257,60 @@ TIPS:
         grade = 70  # Base grade
         tips = []
         
+        # Vertical Jump Analysis
+        if exercise == 'vertical_jump':
+            # Track hip height changes over the sequence
+            hip_heights = []
+            knee_angles = []
+            
+            for frame in pose_sequence:
+                landmarks = frame.get('landmarks', [])
+                # Find hip landmark
+                for lm in landmarks:
+                    if 'hip' in lm.get('part', ''):
+                        hip_heights.append(lm.get('y', 0))
+                        break
+                
+                # Get knee angles
+                angles = frame.get('angles', {})
+                if 'LEG_ANGLE_LEFT' in angles:
+                    knee_angles.append(angles['LEG_ANGLE_LEFT'])
+            
+            if hip_heights:
+                # Calculate jump metrics
+                min_hip = min(hip_heights)  # Lowest point (crouch)
+                max_hip = max(hip_heights)  # Highest point (peak)
+                jump_range = abs(max_hip - min_hip)
+                
+                # Grade based on jump height (y-axis is inverted in mediapipe)
+                if jump_range > 0.3:  # Significant vertical displacement
+                    grade = 85
+                    tips.append("Great jump height! Keep that explosive power")
+                elif jump_range > 0.2:
+                    grade = 75
+                    tips.append("Good jump. Try to explode more powerfully from the crouch")
+                else:
+                    grade = 60
+                    tips.append("Crouch deeper and explode upward more forcefully")
+                
+                # Check knee extension
+                if knee_angles:
+                    max_knee = max(knee_angles)
+                    if max_knee < 160:
+                        tips.append("Fully extend your knees at takeoff for maximum power")
+                    else:
+                        tips.append("Good knee extension at takeoff")
+                
+                # Arm swing tip
+                tips.append("Swing your arms upward explosively to add momentum")
+            
+            return {
+                "skill": "Vertical Jump",
+                "grade": str(grade),
+                "tips": tips[:3]  # Limit to 3 tips
+            }
+        
+        # Static skills analysis (existing code)
         # Check arm angles
         if 'ARM_ANGLE_LEFT' in avg_angles:
             left_arm = sum(avg_angles['ARM_ANGLE_LEFT']) / len(avg_angles['ARM_ANGLE_LEFT'])
