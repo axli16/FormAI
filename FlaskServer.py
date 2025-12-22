@@ -7,6 +7,7 @@ import socket
 from dotenv import load_dotenv
 import time
 import VideoFeed
+from feedback_logger import get_logger
 
 # Load environment variables
 load_dotenv()
@@ -62,6 +63,9 @@ if kafka_config:
 user_selected_skill = "handstand"  # Default
 ai_feedback = {"skill": user_selected_skill, "grade": "", "tips": [], "source": "rule-based"}
 
+# Initialize feedback logger
+feedback_logger = get_logger()
+
 def poll_ai_feedback():
     """Poll for AI-generated feedback from Kafka (non-blocking)"""
     global ai_feedback
@@ -76,6 +80,15 @@ def poll_ai_feedback():
             ai_feedback = feedback_data
             ai_feedback['source'] = 'ai'
             print(f"📥 Received AI feedback: {feedback_data['skill']} - {feedback_data['grade']}")
+            
+            # Log the AI feedback
+            feedback_logger.log_feedback(
+                feedback_data,
+                metadata={
+                    "user_id": "user_1",
+                    "source": "kafka_consumer"
+                }
+            )
     except Exception as e:
         pass  # Silently fail, don't break the app
 
@@ -184,11 +197,11 @@ def getfeedback():
         })
     else:
         # Fallback to rule-based feedback
-        update_feedback()
+        # update_feedback()
         return jsonify({
-            "skill": str(feedback["skill"]) or "Detecting...",
-            "grade": str(feedback["grade"]) or "Pending",
-            "tips": list(feedback["tips"]) or ["Looking..."],
+            "skill": "Detecting...",
+            "grade": "Pending",
+            "tips": ["Looking..."],
             "source": "rule-based"
         })
 

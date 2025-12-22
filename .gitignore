@@ -4,4 +4,4 @@
 *.pyc
 *.pyo
 *.pyd
-
+*.json

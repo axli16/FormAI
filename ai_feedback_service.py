@@ -13,6 +13,7 @@ import json
 import time
 from collections import deque
 import socket
+from feedback_logger import get_logger
 
 # TODO: Install google-cloud-aiplatform
 # pip install google-cloud-aiplatform
@@ -228,7 +229,7 @@ TIPS:
                     grade = line.replace("GRADE:", "").strip()
                 elif line.startswith("- "):
                     tips.append(line[2:].strip())
-            
+            print(f"AI response: {response_text}")
             return {
                 "skill": exercise.replace("_", " ").title(),
                 "grade": grade,
@@ -239,99 +240,101 @@ TIPS:
     
     def _rule_based_analysis(self, pose_sequence):
         """Fallback rule-based analysis"""
-        if not pose_sequence:
-            return {"skill": "Unknown", "grade": "0", "tips": ["No pose data available"]}
+        return {"skill": "Unknown", "grade": "0", "tips": ["No pose data available"]}
+
+        # if not pose_sequence:
+        #     return {"skill": "Unknown", "grade": "0", "tips": ["No pose data available"]}
         
-        exercise = pose_sequence[0].get('exercise', 'unknown')
+        # exercise = pose_sequence[0].get('exercise', 'unknown')
         
-        # Simple rule-based grading
-        avg_angles = {}
-        for frame in pose_sequence:
-            angles = frame.get('angles', {})
-            for key, value in angles.items():
-                if key not in avg_angles:
-                    avg_angles[key] = []
-                avg_angles[key].append(value)
+        # # Simple rule-based grading
+        # avg_angles = {}
+        # for frame in pose_sequence:
+        #     angles = frame.get('angles', {})
+        #     for key, value in angles.items():
+        #         if key not in avg_angles:
+        #             avg_angles[key] = []
+        #         avg_angles[key].append(value)
         
-        # Calculate simple grade based on angle deviations
-        grade = 70  # Base grade
-        tips = []
+        # # Calculate simple grade based on angle deviations
+        # grade = 70  # Base grade
+        # tips = []
         
-        # Vertical Jump Analysis
-        if exercise == 'vertical_jump':
-            # Track hip height changes over the sequence
-            hip_heights = []
-            knee_angles = []
+        # # Vertical Jump Analysis
+        # if exercise == 'vertical_jump':
+        #     # Track hip height changes over the sequence
+        #     hip_heights = []
+        #     knee_angles = []
             
-            for frame in pose_sequence:
-                landmarks = frame.get('landmarks', [])
-                # Find hip landmark
-                for lm in landmarks:
-                    if 'hip' in lm.get('part', ''):
-                        hip_heights.append(lm.get('y', 0))
-                        break
+        #     for frame in pose_sequence:
+        #         landmarks = frame.get('landmarks', [])
+        #         # Find hip landmark
+        #         for lm in landmarks:
+        #             if 'hip' in lm.get('part', ''):
+        #                 hip_heights.append(lm.get('y', 0))
+        #                 break
                 
-                # Get knee angles
-                angles = frame.get('angles', {})
-                if 'LEG_ANGLE_LEFT' in angles:
-                    knee_angles.append(angles['LEG_ANGLE_LEFT'])
+        #         # Get knee angles
+        #         angles = frame.get('angles', {})
+        #         if 'LEG_ANGLE_LEFT' in angles:
+        #             knee_angles.append(angles['LEG_ANGLE_LEFT'])
             
-            if hip_heights:
-                # Calculate jump metrics
-                min_hip = min(hip_heights)  # Lowest point (crouch)
-                max_hip = max(hip_heights)  # Highest point (peak)
-                jump_range = abs(max_hip - min_hip)
+        #     if hip_heights:
+        #         # Calculate jump metrics
+        #         min_hip = min(hip_heights)  # Lowest point (crouch)
+        #         max_hip = max(hip_heights)  # Highest point (peak)
+        #         jump_range = abs(max_hip - min_hip)
                 
-                # Grade based on jump height (y-axis is inverted in mediapipe)
-                if jump_range > 0.3:  # Significant vertical displacement
-                    grade = 85
-                    tips.append("Great jump height! Keep that explosive power")
-                elif jump_range > 0.2:
-                    grade = 75
-                    tips.append("Good jump. Try to explode more powerfully from the crouch")
-                else:
-                    grade = 60
-                    tips.append("Crouch deeper and explode upward more forcefully")
+        #         # Grade based on jump height (y-axis is inverted in mediapipe)
+        #         if jump_range > 0.3:  # Significant vertical displacement
+        #             grade = 85
+        #             tips.append("Great jump height! Keep that explosive power")
+        #         elif jump_range > 0.2:
+        #             grade = 75
+        #             tips.append("Good jump. Try to explode more powerfully from the crouch")
+        #         else:
+        #             grade = 60
+        #             tips.append("Crouch deeper and explode upward more forcefully")
                 
-                # Check knee extension
-                if knee_angles:
-                    max_knee = max(knee_angles)
-                    if max_knee < 160:
-                        tips.append("Fully extend your knees at takeoff for maximum power")
-                    else:
-                        tips.append("Good knee extension at takeoff")
+        #         # Check knee extension
+        #         if knee_angles:
+        #             max_knee = max(knee_angles)
+        #             if max_knee < 160:
+        #                 tips.append("Fully extend your knees at takeoff for maximum power")
+        #             else:
+        #                 tips.append("Good knee extension at takeoff")
                 
-                # Arm swing tip
-                tips.append("Swing your arms upward explosively to add momentum")
+        #         # Arm swing tip
+        #         tips.append("Swing your arms upward explosively to add momentum")
             
-            return {
-                "skill": "Vertical Jump",
-                "grade": str(grade),
-                "tips": tips[:3]  # Limit to 3 tips
-            }
+        #     return {
+        #         "skill": "Vertical Jump",
+        #         "grade": str(grade),
+        #         "tips": tips[:3]  # Limit to 3 tips
+        #     }
         
-        # Static skills analysis (existing code)
-        # Check arm angles
-        if 'ARM_ANGLE_LEFT' in avg_angles:
-            left_arm = sum(avg_angles['ARM_ANGLE_LEFT']) / len(avg_angles['ARM_ANGLE_LEFT'])
-            if left_arm < 160:
-                tips.append("Straighten your left arm more")
-                grade -= 10
+        # # Static skills analysis (existing code)
+        # # Check arm angles
+        # if 'ARM_ANGLE_LEFT' in avg_angles:
+        #     left_arm = sum(avg_angles['ARM_ANGLE_LEFT']) / len(avg_angles['ARM_ANGLE_LEFT'])
+        #     if left_arm < 160:
+        #         tips.append("Straighten your left arm more")
+        #         grade -= 10
         
-        if 'ARM_ANGLE_RIGHT' in avg_angles:
-            right_arm = sum(avg_angles['ARM_ANGLE_RIGHT']) / len(avg_angles['ARM_ANGLE_RIGHT'])
-            if right_arm < 160:
-                tips.append("Straighten your right arm more")
-                grade -= 10
+        # if 'ARM_ANGLE_RIGHT' in avg_angles:
+        #     right_arm = sum(avg_angles['ARM_ANGLE_RIGHT']) / len(avg_angles['ARM_ANGLE_RIGHT'])
+        #     if right_arm < 160:
+        #         tips.append("Straighten your right arm more")
+        #         grade -= 10
         
-        if not tips:
-            tips.append("Good form! Keep practicing")
+        # if not tips:
+        #     tips.append("Good form! Keep practicing")
         
-        return {
-            "skill": exercise.replace("_", " ").title(),
-            "grade": str(max(0, grade)),
-            "tips": tips
-        }
+        # return {
+        #     "skill": exercise.replace("_", " ").title(),
+        #     "grade": str(max(0, grade)),
+        #     "tips": tips
+        # }
 
 def main():
     """Main consumer loop"""
@@ -371,8 +374,12 @@ def main():
     buffer = PoseBuffer(window_seconds=3, fps=5)
     ai_generator = AIFeedbackGenerator()
     
+    # Initialize feedback logger
+    feedback_logger = get_logger()
+    
     print(f"✅ Consuming from: {pose_topic}")
     print(f"✅ Producing to: {feedback_topic}")
+    print(f"✅ Logging feedback to: feedback_logs/")
     print("\n⏳ Waiting for pose data...\n")
     
     try:
@@ -398,6 +405,16 @@ def main():
                 print(f"   Skill: {feedback['skill']}")
                 print(f"   Grade: {feedback['grade']}")
                 print(f"   Tips: {feedback['tips']}")
+                
+                # Log the feedback for review
+                feedback_logger.log_feedback(
+                    feedback,
+                    metadata={
+                        "user_id": pose_data.get('user_id', 'unknown'),
+                        "exercise": pose_data.get('exercise', 'unknown'),
+                        "sequence_length": len(sequence)
+                    }
+                )
                 
                 # Produce feedback to Kafka
                 producer.produce(
