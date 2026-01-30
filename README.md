@@ -21,9 +21,9 @@ A full-stack web application built with **React** (frontend) and **Flask** (back
 
 ## 🛠️ Tech Stack
 
-| Frontend         | Backend       | CV / ML              |
-|------------------|---------------|----------------------|
-| React (TypeScript) | Flask (Python) | OpenCV, Mediapipe     |
+| Frontend         | Backend       | CV / ML                                  |
+|------------------|---------------|------------------------------------------|
+| React (TypeScript) | Flask (Python) | OpenCV, Mediapipe, Confluent, VertexAI     |
 
 ---
 
@@ -33,8 +33,5 @@ A full-stack web application built with **React** (frontend) and **Flask** (back
 
 ```bash
 git clone https://github.com/axli16/JointTrack.git
-python FlaskServer.py
-cd calisthenic-tracker
-npm install
-npm start dev
+python run_all.py
 ```
