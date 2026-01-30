@@ -8,14 +8,14 @@ A full-stack web application built with **React** (frontend) and **Flask** (back
 
 - 📸 **Live Camera Feed** – Use your webcam to perform calisthenics moves and receive instant feedback.
 - 🧠 **Pose Detection** – Detects key body points using computer vision (Mediapipe / OpenCV).
-- 📝 **Skill Grading** – Evaluates the accuracy of your form and gives you a grade (e.g., A–F).
+- 📝 **Skill Grading** – Evaluates the accuracy of your form and gives you a grade (e.g., 0-100).
 - 💬 **Feedback** – Provides real-time tips to improve your technique.
-- 🧍‍♂️ **Supported Skills (Static)**:
+- 🧍‍♂️ **Supported Skills**:
   - Handstand
   - Front Lever
   - 90-Degree Hold
   - Planche
-- 📤 **Video Upload** *(coming soon)* – Analyze pre-recorded videos instead of using the webcam.
+  - Vertical Jump
 
 ---
 
@@ -33,5 +33,5 @@ A full-stack web application built with **React** (frontend) and **Flask** (back
 
 ```bash
 git clone https://github.com/axli16/JointTrack.git
-python run_all.py
+start_all.bat
 ```
